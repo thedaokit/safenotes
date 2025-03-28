@@ -45,12 +45,14 @@ export function EditCategoryDialog({
     currentCategoryId
   )
   const [description, setDescription] = useState(currentDescription)
+  const [showValidationError, setShowValidationError] = useState(false)
   const utils = api.useUtils()
 
   // Update selected category and description when props change or dialog opens
   useEffect(() => {
     setSelectedCategory(currentCategoryId)
     setDescription(currentDescription)
+    setShowValidationError(false)
   }, [currentCategoryId, currentDescription, isOpen])
 
   const { mutate: updateCategory } = api.transfers.updateCategory.useMutation({
@@ -65,6 +67,11 @@ export function EditCategoryDialog({
   })
 
   const handleSave = async () => {
+    if (!selectedCategory) {
+      setShowValidationError(true)
+      return
+    }
+    
     await updateCategory({
       transferId,
       categoryId: selectedCategory,
@@ -79,6 +86,9 @@ export function EditCategoryDialog({
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
   }
+
+  // Check if we should show a warning about missing category while typing description
+  const showCategoryWarning = !selectedCategory && description.trim().length > 0
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -107,12 +117,14 @@ export function EditCategoryDialog({
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Category</label>
+            <label className="text-sm font-medium">
+              Category <span className="text-red-500">*</span>
+            </label>
             <Select
               value={selectedCategory || 'none'}
               onValueChange={handleValueChange}
             >
-              <SelectTrigger className="bg-white">
+              <SelectTrigger className={`bg-white ${(showValidationError && !selectedCategory) || showCategoryWarning ? 'border-red-500 ring-red-200' : ''}`}>
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
@@ -124,6 +136,15 @@ export function EditCategoryDialog({
                 ))}
               </SelectContent>
             </Select>
+            {showValidationError && !selectedCategory && (
+              <p className="text-sm text-red-500">Please select a category</p>
+            )}
+            {showCategoryWarning && !showValidationError && (
+              <p className="text-sm text-amber-600">
+                <span className="inline-block mr-1">⚠️</span>
+                Must select a category to save this description
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Description</label>
@@ -137,15 +158,18 @@ export function EditCategoryDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            className="bg-blue-500 hover:bg-blue-600"
-          >
-            Save
-          </Button>
+          <div className="flex flex-col w-full gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600"
+              disabled={!selectedCategory}
+            >
+              Save
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
