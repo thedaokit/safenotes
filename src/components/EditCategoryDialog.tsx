@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -46,6 +47,7 @@ export function EditCategoryDialog({
   )
   const [description, setDescription] = useState(currentDescription)
   const [showValidationError, setShowValidationError] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const utils = api.useUtils()
 
   // Update selected category and description when props change or dialog opens
@@ -53,6 +55,7 @@ export function EditCategoryDialog({
     setSelectedCategory(currentCategoryId)
     setDescription(currentDescription)
     setShowValidationError(false)
+    setIsSubmitting(false)
   }, [currentCategoryId, currentDescription, isOpen])
 
   const { mutate: updateCategory } = api.transfers.updateCategory.useMutation({
@@ -62,8 +65,14 @@ export function EditCategoryDialog({
         utils.transfers.getAllTransfersByWallet.invalidate(),
         utils.categories.getAllTransferCategories.invalidate(),
       ])
+      toast.success('Category updated successfully')
       onClose()
+      setIsSubmitting(false)
     },
+    onError: (error) => {
+      toast.error(`Error updating category: ${error.message}`)
+      setIsSubmitting(false)
+    }
   })
 
   const handleSave = async () => {
@@ -72,11 +81,19 @@ export function EditCategoryDialog({
       return
     }
     
-    await updateCategory({
-      transferId,
-      categoryId: selectedCategory,
-      description: description.trim() || null,
-    })
+    setIsSubmitting(true)
+    try {
+      await updateCategory({
+        transferId,
+        categoryId: selectedCategory,
+        description: description.trim() || null,
+      })
+    } catch (error) {
+      // This is a fallback error handler, though the error should be caught by the onError callback
+      setIsSubmitting(false)
+      toast.error('An unexpected error occurred')
+      console.error('Update category error:', error)
+    }
   }
 
   const handleValueChange = (value: string) => {
@@ -159,15 +176,15 @@ export function EditCategoryDialog({
         </div>
         <DialogFooter>
           <div className="flex flex-col w-full gap-2 sm:flex-row sm:justify-end">
-            <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
+            <Button variant="outline" onClick={onClose} className="w-full sm:w-auto" disabled={isSubmitting}>
               Cancel
             </Button>
             <Button
               onClick={handleSave}
               className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600"
-              disabled={!selectedCategory}
+              disabled={!selectedCategory || isSubmitting}
             >
-              Save
+              {isSubmitting ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </DialogFooter>

@@ -11,6 +11,7 @@ import {
   fetchSafeTransfers,
   filterTrustedTransfers,
 } from '@/utils/safe-global-adapter'
+import { TRPCError } from '@trpc/server'
 
 const safeTransferSchema = z.object({
   type: z.enum(['ETHER_TRANSFER', 'ERC20_TRANSFER']),
@@ -135,6 +136,11 @@ export const transfersRouter = createTRPCRouter({
           transferId: input.transferId,
           categoryId: input.categoryId,
           description: input.description,
+        })
+      } else {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Category is required',
         })
       }
 
