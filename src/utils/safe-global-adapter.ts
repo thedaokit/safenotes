@@ -1,5 +1,12 @@
 import { getAddress } from 'viem'
 
+// Map of chain IDs to Safe Transaction Service API URLs
+export const SAFE_API_URLS: Record<string, string> = {
+  'ETH': 'https://safe-transaction-mainnet.safe.global/api/v1',  // Ethereum Mainnet
+  'ARB': 'https://safe-transaction-arbitrum.safe.global/api/v1', // Arbitrum
+  'UNI': 'https://safe-transaction-uni.safe.global/api/v1',      // Uni
+}
+
 export interface SafeTransferResponse {
   count: number
   results: SafeTransfer[]
@@ -30,10 +37,12 @@ export interface SafeTransfer {
 
 export async function fetchSafeTransfers(
   safeAddress: string,
-  limit: number = 100
+  limit: number = 100,
+  chain: string = 'ETH'
 ): Promise<SafeTransferResponse> {
   const checksummedSafeAddress = getAddress(safeAddress)
-  const apiUrl = `https://safe-transaction-mainnet.safe.global/api/v1/safes/${checksummedSafeAddress}/transfers/?limit=${limit}`
+  const baseApiUrl = SAFE_API_URLS[chain]
+  const apiUrl = `${baseApiUrl}/safes/${checksummedSafeAddress}/transfers/?limit=${limit}`
   const response = await fetch(apiUrl)
 
   if (!response.ok) {

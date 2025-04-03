@@ -6,6 +6,9 @@ import { SafesRow } from './SafesRow'
 import { NewSafeDialog } from './NewSafeDialog'
 import { Safe } from '@/db/schema'
 import { toast } from 'sonner'
+import { chainEnum } from '@/db/schema'
+
+type Chain = typeof chainEnum.enumValues[number]
 
 interface SafesContainerProps {
   organizationId: string
@@ -44,11 +47,12 @@ export function SafesContainer({ organizationId, safes, isLoading, isAdmin }: Sa
     return addressMatch || ensMatch
   }) || []
 
-  const handleAddSafe = (address: string) => {
+  const handleAddSafe = (address: string, chain: Chain) => {
     if (!address.trim()) return
     
     createSafe({
       address: address.trim(),
+      chain,
       organizationId
     })
   }
@@ -106,7 +110,7 @@ export function SafesContainer({ organizationId, safes, isLoading, isAdmin }: Sa
               <div>
                 {filteredSafes.map(safe => (
                   <SafesRow
-                    key={safe.address}
+                    key={`${safe.address}-${safe.chain}`}
                     safe={safe}
                     canEditOrDelete={isAdmin}
                     onDeleteSuccess={invalidateSafes}

@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { api } from '@/utils/trpc'
+import { Badge } from '@/components/ui/badge'
+import { chainEnum } from '@/db/schema'
 
 interface SyncStatus {
   [key: string]: {
@@ -32,6 +34,8 @@ interface SyncStatus {
 const TRANSFER_LIMITS = [10, 50, 100, 200] as const
 type TransferLimit = (typeof TRANSFER_LIMITS)[number]
 
+type Chain = typeof chainEnum.enumValues[number]
+
 export function SyncTransactionsDialog({
   isOpen,
   onClose,
@@ -43,6 +47,7 @@ export function SyncTransactionsDialog({
 }) {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({})
   const [transferLimit, setTransferLimit] = useState<TransferLimit>(50)
+  const [selectedChain, setSelectedChain] = useState<Chain>('ETH')
   
   // Fetch safes only for the specified organization
   const { data: safes, isLoading: safesLoading } = api.safes.getByOrganization.useQuery(
@@ -53,12 +58,15 @@ export function SyncTransactionsDialog({
   // Add ENS names to safes
   const { data: safesWithEns, isLoading: ensLoading } = api.safes.getAllSafesWithEns.useQuery(
     undefined,
-    { 
+    {
       enabled: isOpen && !!safes,
       select: (allSafesWithEns) => {
-        // Filter to only include safes from our organization
+        // Filter to only include safes from our organization and selected chain
         return allSafesWithEns.filter(safe => 
-          safes?.some(orgSafe => orgSafe.address === safe.address)
+          safes?.some(orgSafe => 
+            orgSafe.address === safe.address && 
+            safe.chain === selectedChain
+          )
         )
       }
     }
@@ -104,9 +112,10 @@ export function SyncTransactionsDialog({
 
         // Fetch new transfers with selected limit
         const newTransfers =
-          await utils.client.transfers.getTransfersPerWallet.query({
+          await utils.client.transfers.fromSafeApiGetTransfersPerWallet.query({
             safeAddress: safe.address,
             limit: transferLimit,
+            chain: safe.chain,
           })
 
         // Update total in progress
@@ -149,6 +158,7 @@ export function SyncTransactionsDialog({
                 transferId: transfer.transferId,
                 safeAddress: safe.address,
                 type: transfer.type,
+                chain: safe.chain,
                 executionDate: transfer.executionDate,
                 blockNumber: transfer.blockNumber,
                 transactionHash: transfer.transactionHash,
@@ -240,6 +250,19 @@ export function SyncTransactionsDialog({
     return `${address.slice(0, 6)}...${address.slice(-4)}`
   }
 
+  const getChainDisplayName = (chain: string) => {
+    switch (chain) {
+      case 'ETH':
+        return 'Ethereum'
+      case 'ARB':
+        return 'Arbitrum'
+      case 'UNI':
+        return 'Uniswap'
+      default:
+        return chain
+    }
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl bg-white p-0">
@@ -247,31 +270,46 @@ export function SyncTransactionsDialog({
           <DialogTitle>Sync Transactions for Organization</DialogTitle>
         </DialogHeader>
         <div className="p-6 pt-2">
-          <div className="mb-4 flex items-center justify-between">
-            <Select
-              value={transferLimit.toString()}
-              onValueChange={(value) =>
-                setTransferLimit(Number(value) as TransferLimit)
-              }
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Transactions per wallet" />
-              </SelectTrigger>
-              <SelectContent>
-                {TRANSFER_LIMITS.map((limit) => (
-                  <SelectItem key={limit} value={limit.toString()}>
-                    {limit} transactions
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Select
+                value={selectedChain}
+                onValueChange={(value: Chain) => setSelectedChain(value)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select chain" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ETH">Ethereum</SelectItem>
+                  <SelectItem value="ARB">Arbitrum</SelectItem>
+                  <SelectItem value="UNI">Uniswap</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={transferLimit.toString()}
+                onValueChange={(value) =>
+                  setTransferLimit(Number(value) as TransferLimit)
+                }
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Transactions per wallet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRANSFER_LIMITS.map((limit) => (
+                    <SelectItem key={limit} value={limit.toString()}>
+                      {limit} transactions
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="max-h-[60vh] space-y-3 overflow-y-auto">
             {isLoading ? (
               <div className="text-center py-4">Loading safes...</div>
             ) : !safesWithEns || safesWithEns.length === 0 ? (
-              <div className="text-center py-4">No safes found for this organization</div>
+              <div className="text-center py-4">No safes found for this organization on {getChainDisplayName(selectedChain)}</div>
             ) : (
               safesWithEns.map((safe) => {
                 const status = syncStatus[safe.address]
@@ -279,14 +317,19 @@ export function SyncTransactionsDialog({
 
                 return (
                   <div
-                    key={safe.address}
+                    key={`${safe.address}-${safe.chain}`}
                     className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
                   >
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex flex-col gap-1">
-                        <span className="font-mono text-sm text-gray-600">
-                          {formatAddress(safe.address)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm text-gray-600">
+                            {formatAddress(safe.address)}
+                          </span>
+                          <Badge variant="outline" className="text-xs">
+                            {getChainDisplayName(safe.chain)}
+                          </Badge>
+                        </div>
                         {safe.name && (
                           <span className="text-sm text-gray-500">
                             {safe.name}

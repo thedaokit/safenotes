@@ -20,16 +20,20 @@ import {
   type SafeItem,
   type TransferCategoryItem,
   type TransferItem,
+  chainEnum,
 } from '@/db/schema'
 import { truncateAddress } from '@/lib/utils'
 import { type AddressMap, fetchEnsNames } from '@/utils/fetch-ens-names'
 import { api } from '@/utils/trpc'
 import { TransactionCard } from '@/components/TransactionComponent/TransactionCard'
 
+type Chain = typeof chainEnum.enumValues[number]
+
 interface TransactionTableProps {
   transfers: TransferItem[]
   transferCategories: TransferCategoryItem[]
   safeAddress: string | null
+  chain: Chain | null
   isLoading: boolean
   categories: CategoryItem[]
   allSafes: SafeItem[]
@@ -136,6 +140,7 @@ interface TransactionDirectionAmountProps {
   amount: string
   tokenSymbol: string
   tokenDecimals: number
+  chain: Chain
 }
 
 const TransactionDirectionAmount = ({
@@ -144,6 +149,7 @@ const TransactionDirectionAmount = ({
   amount,
   tokenSymbol,
   tokenDecimals,
+  chain,
 }: TransactionDirectionAmountProps) => {
   const formattedAmount =
     tokenSymbol === 'ETH' || tokenSymbol === 'WETH' || !tokenSymbol
@@ -159,14 +165,27 @@ const TransactionDirectionAmount = ({
           }
         )} ${tokenSymbol}`
 
+  const getExplorerUrl = (chain: Chain) => {
+    switch (chain) {
+      case 'ETH':
+        return `https://etherscan.io/tx/${transactionHash}`
+      case 'ARB':
+        return `https://arbiscan.io/tx/${transactionHash}`
+      case 'UNI':
+        return `https://uniswap.info/tx/${transactionHash}`
+      default:
+        return `https://etherscan.io/tx/${transactionHash}`
+    }
+  }
+
   return (
     <div className="flex flex-col items-center gap-2 lg:flex-row">
       <Link
-        href={`https://etherscan.io/tx/${transactionHash}`}
+        href={getExplorerUrl(chain)}
         target="_blank"
         rel="noopener noreferrer"
         className="cursor-pointer hover:text-blue-500"
-        title="View on Etherscan"
+        title="View on Explorer"
       >
         <Image
           src={isOutgoing ? '/img/out-arrow.svg' : '/img/in-arrow.svg'}
@@ -184,6 +203,7 @@ export default function TransactionTable({
   transfers,
   transferCategories,
   safeAddress,
+  chain,
   isLoading,
   categories,
   allSafes,
@@ -196,21 +216,32 @@ export default function TransactionTable({
   const [editingTransfer, setEditingTransfer] = useState<string | null>(null)
   const utils = api.useUtils()
 
+  console.log(`transfers before filter`, transfers.length)
   // Process transfers to create rows for each safe involved
   const processedTransfers = transfers
     .filter((transfer) => {
-      const decimals = transfer.tokenDecimals || 18
-      const value = Number(transfer.value) / Math.pow(10, decimals)
-      return value >= 0.99 // threshold to show transfers
+      // Filter by chain if specified
+      if (chain && transfer.safeChain.toLowerCase() !== chain.toLowerCase()) return false
+      
+      // Filter by safe address if specified
+      if (safeAddress && transfer.safeAddress.toLowerCase() !== safeAddress.toLowerCase()) return false
+
+      return true
+      // const decimals = transfer.tokenDecimals || 18
+      // const value = Number(transfer.value) / Math.pow(10, decimals)
+      // return value >= 0.99 // threshold to show transfers
     })
     .flatMap((transfer) => {
       const rows: (TransferItem & { viewType: 'in' | 'out' })[] = []
-      const trackedSafeAddresses = safeAddress
-        ? new Set([safeAddress.toLowerCase()])
-        : new Set(allSafes.map((safe) => safe.address.toLowerCase()))
+      const trackedSafeAddresses = (safeAddress && chain)
+        ? new Set([`${safeAddress.toLowerCase()}-${chain.toLowerCase()}`])
+        : new Set(allSafes.map((safe) => `${safe.address.toLowerCase()}-${safe.chain.toLowerCase()}`))
 
+      console.log(`trackedSafeAddresses`, trackedSafeAddresses)
+      const identifierOut = `${transfer.fromAddress.toLowerCase()}-${transfer.safeChain.toLowerCase()}`
+      const identifierIn = `${transfer.toAddress.toLowerCase()}-${transfer.safeChain.toLowerCase()}`
       // Check if from address is a tracked safe
-      if (trackedSafeAddresses.has(transfer.fromAddress.toLowerCase())) {
+      if (trackedSafeAddresses.has(identifierOut)) {
         rows.push({
           ...transfer,
           viewType: 'out',
@@ -218,15 +249,18 @@ export default function TransactionTable({
       }
 
       // Check if to address is a tracked safe
-      if (trackedSafeAddresses.has(transfer.toAddress.toLowerCase())) {
+      if (trackedSafeAddresses.has(identifierIn)) {
         rows.push({
           ...transfer,
           viewType: 'in',
         })
       }
 
+      console.log(`rows count ${rows.length}`)
       return rows
     })
+
+  console.log(`processedTransfers after filter`, processedTransfers.length)
 
   // Calculate pagination based on processed transfers
   const totalItems = processedTransfers.length
@@ -297,6 +331,19 @@ export default function TransactionTable({
     return currentMapping?.description || '-'
   }
 
+  const getExplorerUrl = (address: string, chain: Chain) => {
+    switch (chain) {
+      case 'ETH':
+        return `https://etherscan.io/address/${address}`
+      case 'ARB':
+        return `https://arbiscan.io/address/${address}`
+      case 'UNI':
+        return `https://uniswap.info/address/${address}`
+      default:
+        return `https://etherscan.io/address/${address}`
+    }
+  }
+
   if (isLoading) {
     return <TableSkeleton isAdmin={isAdmin} />
   }
@@ -311,6 +358,7 @@ export default function TransactionTable({
               <TableRow key={i} className="h-[50px]">
                 {isAdmin && <TableCell className="w-[60px]" />}
                 <TableCell className="w-[180px]" />
+                <TableCell className="w-[100px]" />
                 <TableCell className="w-[200px]" />
                 <TableCell className="w-[180px]" />
                 <TableCell className="w-[140px]" />
@@ -400,10 +448,14 @@ export default function TransactionTable({
                   <TableCell className="min-w-48 sm:min-w-72">
                     <Link
                       target="_blank"
-                      href={`https://etherscan.io/address/${transfer.safeAddress}`}
+                      href={getExplorerUrl(mainPartyAddress, transfer.safeChain)}
                     >
                       {formatAddress(mainPartyAddress)}
                     </Link>
+                  </TableCell>
+                  {/* Chain */}
+                  <TableCell className="w-[100px] font-medium">
+                    {transfer.safeChain}
                   </TableCell>
                   {/* Amount */}
                   <TableCell className="w-[200px]">
@@ -413,13 +465,14 @@ export default function TransactionTable({
                       amount={transfer.value || '0'}
                       tokenSymbol={transfer.tokenSymbol || ''}
                       tokenDecimals={transfer.tokenDecimals || 18}
+                      chain={transfer.safeChain}
                     />
                   </TableCell>
                   {/* Counterparty address */}
                   <TableCell className="min-w-48" title={counterpartyAddress}>
                     <Link
                       target="_blank"
-                      href={`https://etherscan.io/address/${counterpartyAddress}`}
+                      href={getExplorerUrl(counterpartyAddress, transfer.safeChain)}
                     >
                       {formatAddress(counterpartyAddress)}
                     </Link>
@@ -454,6 +507,7 @@ export default function TransactionTable({
                 <TableRow key={`empty-${i}`} className="h-[50px]">
                   {isAdmin && <TableCell className="w-[60px]" />}
                   <TableCell className="w-[180px]" />
+                  <TableCell className="w-[100px]" />
                   <TableCell className="w-[200px]" />
                   <TableCell className="w-[180px]" />
                   <TableCell className="w-[140px]" />

@@ -5,6 +5,7 @@ import { api } from '@/utils/trpc'
 import { ConfirmDeleteDialog } from '../ConfirmDeleteDialog'
 import { Safe } from '@/db/schema'
 import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
 
 interface SafesRowProps {
   safe: Safe & { name?: string }
@@ -53,9 +54,32 @@ export function SafesRow({ safe, onDeleteSuccess, canEditOrDelete }: SafesRowPro
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
   }
 
-  // Generate Etherscan link
-  const getEtherscanLink = (address: string) => {
-    return `https://etherscan.io/address/${address}`
+  // Generate Etherscan link based on chain
+  const getEtherscanLink = (address: string, chain: string) => {
+    switch (chain) {
+      case 'ETH':
+        return `https://etherscan.io/address/${address}`
+      case 'ARB':
+        return `https://arbiscan.io/address/${address}`
+      case 'UNI':
+        return `https://uniswap.info/address/${address}`
+      default:
+        return `https://etherscan.io/address/${address}`
+    }
+  }
+
+  // Get chain display name
+  const getChainDisplayName = (chain: string) => {
+    switch (chain) {
+      case 'ETH':
+        return 'Ethereum'
+      case 'ARB':
+        return 'Arbitrum'
+      case 'UNI':
+        return 'Uniswap'
+      default:
+        return chain
+    }
   }
 
   return (
@@ -70,8 +94,11 @@ export function SafesRow({ safe, onDeleteSuccess, canEditOrDelete }: SafesRowPro
                 <span className="text-gray-600 font-mono text-sm">
                   {truncateAddress(safe.address)}
                 </span>
+                <Badge variant="outline" className="text-xs">
+                  {getChainDisplayName(safe.chain)}
+                </Badge>
                 <a 
-                  href={getEtherscanLink(safe.address)} 
+                  href={getEtherscanLink(safe.address, safe.chain)} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-500 hover:text-blue-600"

@@ -50,7 +50,8 @@ export const safesRouter = createTRPCRouter({
         .where(
           and(
             eq(safes.address, input.address),
-            eq(safes.organizationId, input.organizationId)
+            eq(safes.organizationId, input.organizationId),
+            eq(safes.chain, input.chain)
           )
         )
         .limit(1)

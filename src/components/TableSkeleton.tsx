@@ -17,6 +17,7 @@ export function TableSkeleton({ isAdmin }: { isAdmin: boolean }) {
           <TableRow className="h-[50px]">
             {isAdmin && <TableHead className="w-[60px]">Edit</TableHead>}
             <TableHead className="w-[180px]">Safe</TableHead>
+            <TableHead className="w-[100px]">Chain</TableHead>
             <TableHead className="w-[200px] min-w-[200px]">Amount</TableHead>
             <TableHead className="w-[180px]">Address</TableHead>
             <TableHead className="w-[140px]">Category</TableHead>
@@ -37,6 +38,9 @@ export function TableSkeleton({ isAdmin }: { isAdmin: boolean }) {
                 </TableCell>
               )}
               <TableCell className="w-[180px]">
+                <div className="h-4 w-24 animate-pulse rounded bg-neutral-200" />
+              </TableCell>
+              <TableCell className="w-[100px]">
                 <div className="h-4 w-24 animate-pulse rounded bg-neutral-200" />
               </TableCell>
               <TableCell className="w-[200px] min-w-[200px]">

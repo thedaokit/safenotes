@@ -17,6 +17,19 @@ export const transferTypeEnum = pgEnum('transfer_type', [
   'ERC20_TRANSFER',
 ])
 
+// TypeScript enum for chain values
+// export enum Chain {
+//   ETH = 'ETH', // ethereum | 1
+//   ARB = 'ARB', // arbitrum | 42161
+//   UNI = 'UNI', // uni | 130 | 0x82
+// }
+
+// export const chainEnum = pgEnum('chain', [
+//   Chain.ETH,
+//   Chain.ARB,
+//   Chain.UNI,
+// ])
+
 export const chainEnum = pgEnum('chain', [
   'ETH', // ethereum | 1
   'ARB', // arbitrum | 42161

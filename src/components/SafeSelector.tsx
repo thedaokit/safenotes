@@ -6,15 +6,21 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { api } from '@/utils/trpc'
+import { Badge } from '@/components/ui/badge'
+import { chainEnum } from '@/db/schema'
 
 interface SafeSelectorProps {
   safeAddress: string | null
-  onChange: (value: string | null) => void
+  chain: Chain
+  onChange: (value: string | null, chain: Chain) => void
   organizationId?: string // Optional organization ID parameter
 }
 
+type Chain = typeof chainEnum.enumValues[number]
+
 export default function SafeSelector({
   safeAddress,
+  chain,
   onChange,
   organizationId,
 }: SafeSelectorProps) {
@@ -23,17 +29,16 @@ export default function SafeSelector({
     undefined,
     { enabled: !organizationId }
   )
-  
   // Fetch safes for a specific organization
   const { data: orgSafes, isLoading: orgSafesLoading } = api.safes.getByOrganization.useQuery(
     { organizationId: organizationId || '' },
     { enabled: !!organizationId }
   )
-  
+
   // Fetch ENS names for organization safes if needed
   const { data: orgSafesWithEns, isLoading: orgEnsLoading } = api.safes.getAllSafesWithEns.useQuery(
     undefined,
-    { 
+    {
       enabled: !!organizationId && !!orgSafes,
       select: (allSafes) => {
         // Filter to only include safes from our organization
@@ -43,22 +48,37 @@ export default function SafeSelector({
       }
     }
   )
-  
+
   // Determine which data and loading state to use
   const safes = organizationId ? orgSafesWithEns : allSafesWithEns
-  const isLoading = organizationId 
-    ? (orgSafesLoading || orgEnsLoading) 
+  const isLoading = organizationId
+    ? (orgSafesLoading || orgEnsLoading)
     : allSafesLoading
 
-  const handleChange = (value: string) => {
+  const localHandleChange = (value: string) => {
+    const [safeAddress, chain] = value.split('-')
     // Convert "all" back to null when selected
-    onChange(value === 'all' ? null : value)
+    onChange(safeAddress === 'all' ? null : safeAddress, chain as Chain)
+  }
+
+  const getChainDisplayName = (chain: string) => {
+    switch (chain) {
+      case 'ETH':
+        return 'Ethereum'
+      case 'ARB':
+        return 'Arbitrum'
+      case 'UNI':
+        return 'Uniswap'
+      default:
+        return chain
+    }
   }
 
   return (
+    <div className="flex flex-col gap-2">
     <Select
-      value={safeAddress === null ? 'all' : safeAddress}
-      onValueChange={handleChange}
+      value={safeAddress === null ? 'all' : `${safeAddress}-${chain}`}
+      onValueChange={localHandleChange}
     >
       <SelectTrigger className="min-w-[300px] max-w-[367px] bg-neutral-50 py-5 text-lg font-bold">
         <SelectValue placeholder="All Safes" />
@@ -71,10 +91,17 @@ export default function SafeSelector({
           </SelectItem>
         )}
         {safes?.map((safe) => (
-          <SelectItem key={safe.address} value={safe.address}>
-            {safe.name
-              ? safe.name
-              : `${safe.address.slice(0, 6)}...${safe.address.slice(-4)}`}
+          <SelectItem key={`${safe.address}-${safe.chain}`} value={`${safe.address}-${safe.chain}`}>
+            <div className="flex items-center gap-2">
+              <span>
+                {safe.name
+                  ? safe.name
+                  : `${safe.address.slice(0, 6)}...${safe.address.slice(-4)}`}
+              </span>
+              <Badge variant="outline" className="text-xs">
+                {getChainDisplayName(safe.chain)}
+              </Badge>
+            </div>
           </SelectItem>
         ))}
         {safes?.length === 0 && (
@@ -84,5 +111,6 @@ export default function SafeSelector({
         )}
       </SelectContent>
     </Select>
+  </div>
   )
 }

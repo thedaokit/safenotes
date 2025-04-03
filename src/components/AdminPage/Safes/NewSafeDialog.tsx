@@ -11,13 +11,23 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Plus } from 'lucide-react'
+import { chainEnum } from '@/db/schema'
+
+type Chain = typeof chainEnum.enumValues[number]
 
 interface NewSafeDialogProps {
   /**
    * Function to call when a new safe is added
    */
-  onAddSafe: (address: string) => void
+  onAddSafe: (address: string, chain: Chain) => void
   
   /**
    * Whether the add operation is currently loading
@@ -28,6 +38,7 @@ interface NewSafeDialogProps {
 export function NewSafeDialog({ onAddSafe, isLoading = false }: NewSafeDialogProps) {
   const [open, setOpen] = useState(false)
   const [address, setAddress] = useState('')
+  const [chain, setChain] = useState<Chain>('ETH')
   const [error, setError] = useState('')
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -48,10 +59,11 @@ export function NewSafeDialog({ onAddSafe, isLoading = false }: NewSafeDialogPro
     }
     
     // Call the parent component's function
-    onAddSafe(address.trim())
+    onAddSafe(address.trim(), chain)
     
     // Reset form and close dialog
     setAddress('')
+    setChain('ETH')
     setOpen(false)
   }
   
@@ -82,6 +94,19 @@ export function NewSafeDialog({ onAddSafe, isLoading = false }: NewSafeDialogPro
                 className={error ? 'border-red-500' : ''}
               />
               {error && <p className="text-sm text-red-500">{error}</p>}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="chain">Chain</Label>
+              <Select value={chain} onValueChange={(value: Chain) => setChain(value)}>
+                <SelectTrigger id="chain">
+                  <SelectValue placeholder="Select chain" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ETH">Ethereum</SelectItem>
+                  <SelectItem value="ARB">Arbitrum</SelectItem>
+                  <SelectItem value="UNI">Uniswap</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

@@ -12,6 +12,7 @@ export function TransactionTableHeader({
       <TableRow className="h-[50px]">
         {showEditColumn && <TableHead className="w-[60px]">Edit</TableHead>}
         <TableHead className="w-[180px]">Safe</TableHead>
+        <TableHead className="w-[100px]">Chain</TableHead>
         <TableHead className="w-[200px]">Amount</TableHead>
         <TableHead className="w-[180px]">To / From</TableHead>
         <TableHead className="w-[140px]">Category</TableHead>

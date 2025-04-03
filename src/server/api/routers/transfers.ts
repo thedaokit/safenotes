@@ -1,5 +1,6 @@
 import { desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
+import { chainEnum } from '@/db/schema'
 
 import { transferCategories, transfers } from '@/db/schema'
 import {
@@ -14,6 +15,7 @@ import {
 import { TRPCError } from '@trpc/server'
 
 const safeTransferSchema = z.object({
+  chain: z.enum(['ETH', 'ARB', 'UNI']),
   type: z.enum(['ETHER_TRANSFER', 'ERC20_TRANSFER']),
   executionDate: z.string(),
   blockNumber: z.number(),
@@ -36,17 +38,19 @@ const safeTransferSchema = z.object({
 })
 
 export const transfersRouter = createTRPCRouter({
-  getTransfersPerWallet: publicProcedure
+  fromSafeApiGetTransfersPerWallet: publicProcedure
     .input(
       z.object({
         safeAddress: z.string(),
         limit: z.number().default(100),
+        chain: z.string().default('ETH'),
       })
     )
     .query(async ({ input }) => {
       const { results } = await fetchSafeTransfers(
         input.safeAddress,
-        input.limit
+        input.limit,
+        input.chain
       )
       return filterTrustedTransfers(results)
     }),
@@ -64,7 +68,7 @@ export const transfersRouter = createTRPCRouter({
         .values({
           transferId: transfer.transferId,
           safeAddress: transfer.safeAddress,
-          safeChain: 'ETH',
+          safeChain: transfer.chain,
           type: transfer.type,
           executionDate: new Date(transfer.executionDate),
           blockNumber: transfer.blockNumber,

@@ -11,11 +11,15 @@ import { adminAddresses } from '@/lib/auth'
 import { SyncTransactionsDialog } from '@/components/SyncTransactionsDialog'
 import TransactionTable from '@/components/TransactionTable';
 import { Button } from '@/components/ui/button';
+import { chainEnum } from '@/db/schema';
+
+type Chain = typeof chainEnum.enumValues[number]
 
 export default function OrganizationPage() {
   const router = useRouter();
   const { org } = router.query;
   const [selectedSafe, setSelectedSafe] = useState<string | null>(null);
+  const [selectedChain, setSelectedChain] = useState<Chain>('ETH');
   const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const { data: session } = useSession();
@@ -103,7 +107,11 @@ export default function OrganizationPage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-4">
             <SafeSelector
               safeAddress={selectedSafe}
-              onChange={setSelectedSafe}
+              chain={selectedChain}
+              onChange={(safeAddress, chain) => {
+                setSelectedSafe(safeAddress);
+                setSelectedChain(chain);
+              }}
               organizationId={organization?.id ?? ''}
             />
             <SafeStats safeAddress={selectedSafe} />
@@ -139,6 +147,7 @@ export default function OrganizationPage() {
             transferCategories={transferCategories || []}
             categories={categories || []}
             safeAddress={selectedSafe}
+            chain={selectedChain}
             isLoading={isLoading}
             allSafes={safes || []}
             isAdmin={isAdmin}
