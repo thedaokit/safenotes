@@ -1,6 +1,8 @@
 import { useRouter } from 'next/router';
 import { Layout } from '@/components/Layout';
 import { api } from '@/utils/trpc';
+import Image from 'next/image'
+import { Download, RefreshCw } from 'lucide-react'
 
 import { useState, useEffect } from 'react';
 import SafeSelector from '@/components/SafeSelector'
@@ -11,6 +13,7 @@ import { adminAddresses } from '@/lib/auth'
 import { SyncTransactionsDialog } from '@/components/SyncTransactionsDialog'
 import TransactionTable from '@/components/TransactionTable';
 import { Button } from '@/components/ui/button';
+import { transfersToCsvFormat, transfersToTableFormat } from '@/utils/transfers-to-table-format';
 
 export default function OrganizationPage() {
   const router = useRouter();
@@ -78,6 +81,23 @@ export default function OrganizationPage() {
     }
   }, [admins, session]);
 
+  const handleExportCsv = () => {
+    if (!transfers || !organization) return
+
+    // Process transfers to match the table view
+    const processedTransfers = transfersToTableFormat(transfers, selectedSafe, safes || [])
+    const csv = transfersToCsvFormat(processedTransfers, transferCategories || [], categories || [])
+
+
+    const blob = new Blob([csv], {
+      type: 'text/csv;charset=utf-8;',
+    })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `${organization.name.toLowerCase()}_transactions_${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+  }
+
   const isLoading = transfersLoading || transferCategoriesLoading || categoriesLoading || adminsLoading;
   const isError = transfersError || transferCategoriesError || categoriesError || adminsError;
 
@@ -90,11 +110,15 @@ export default function OrganizationPage() {
             <div className="text-neutral-500">{organization?.description}</div>
           </div>
           <div className="flex flex-col items-end gap-3">
-            <img
-              src={organization?.logoImage}
-              alt={`${organization?.name} Logo`}
-              className="w-20 h-20"
-            />
+          {organization?.logoImage && (
+              <Image
+                src={organization.logoImage}
+                alt={`${organization?.name} Logo`}
+                className="h-20 w-20 -rotate-3 rounded-2xl drop-shadow-md"
+                width={80}
+                height={80}
+              />
+            )}
           </div>
         </div>
 
@@ -110,19 +134,23 @@ export default function OrganizationPage() {
           </div>
           {/* Sync button above transaction table */}
           {isAdmin && (
-            <div className="flex justify-end">
+            <div className="flex justify-center gap-2 md:justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCsv}
+                className="flex items-center gap-2 border-green-200 text-green-600 hover:bg-green-50"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export CSV
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsSyncDialogOpen(true)}
                 className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 2v6h-6"></path>
-                  <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
-                  <path d="M3 22v-6h6"></path>
-                  <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
-                </svg>
+                <RefreshCw className="h-3.5 w-3.5" />
                 Sync Transactions
               </Button>
             </div>

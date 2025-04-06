@@ -25,6 +25,7 @@ import { truncateAddress } from '@/lib/utils'
 import { type AddressMap, fetchEnsNames } from '@/utils/fetch-ens-names'
 import { api } from '@/utils/trpc'
 import { TransactionCard } from '@/components/TransactionComponent/TransactionCard'
+import { transfersToTableFormat } from '@/utils/transfers-to-table-format'
 
 interface TransactionTableProps {
   transfers: TransferItem[]
@@ -197,36 +198,7 @@ export default function TransactionTable({
   const utils = api.useUtils()
 
   // Process transfers to create rows for each safe involved
-  const processedTransfers = transfers
-    .filter((transfer) => {
-      const decimals = transfer.tokenDecimals || 18
-      const value = Number(transfer.value) / Math.pow(10, decimals)
-      return value >= 0.99 // threshold to show transfers
-    })
-    .flatMap((transfer) => {
-      const rows: (TransferItem & { viewType: 'in' | 'out' })[] = []
-      const trackedSafeAddresses = safeAddress
-        ? new Set([safeAddress.toLowerCase()])
-        : new Set(allSafes.map((safe) => safe.address.toLowerCase()))
-
-      // Check if from address is a tracked safe
-      if (trackedSafeAddresses.has(transfer.fromAddress.toLowerCase())) {
-        rows.push({
-          ...transfer,
-          viewType: 'out',
-        })
-      }
-
-      // Check if to address is a tracked safe
-      if (trackedSafeAddresses.has(transfer.toAddress.toLowerCase())) {
-        rows.push({
-          ...transfer,
-          viewType: 'in',
-        })
-      }
-
-      return rows
-    })
+  const processedTransfers = transfersToTableFormat(transfers, safeAddress, allSafes)
 
   // Calculate pagination based on processed transfers
   const totalItems = processedTransfers.length
