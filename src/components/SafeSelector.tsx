@@ -74,7 +74,7 @@ export default function SafeSelector({
         {safes?.map((safe) => (
           <SelectItem key={safe.address} value={safe.address}>
             <div className="flex items-center gap-2">
-              <ChainIcon chain={safe.chain} width={16} height={16} />
+              <ChainIcon chain={safe.chain} width={24} height={24} />
               {safe.name
                 ? safe.name
                 : `${safe.address.slice(0, 6)}...${safe.address.slice(-4)}`}
