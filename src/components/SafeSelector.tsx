@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { api } from '@/utils/trpc'
+import { ChainIcon } from '@/components/ChainIcon'
 
 interface SafeSelectorProps {
   safeAddress: string | null
@@ -23,31 +24,31 @@ export default function SafeSelector({
     undefined,
     { enabled: !organizationId }
   )
-  
+
   // Fetch safes for a specific organization
   const { data: orgSafes, isLoading: orgSafesLoading } = api.safes.getByOrganization.useQuery(
     { organizationId: organizationId || '' },
     { enabled: !!organizationId }
   )
-  
+
   // Fetch ENS names for organization safes if needed
   const { data: orgSafesWithEns, isLoading: orgEnsLoading } = api.safes.getAllSafesWithEns.useQuery(
     undefined,
-    { 
+    {
       enabled: !!organizationId && !!orgSafes,
       select: (allSafes) => {
         // Filter to only include safes from our organization
-        return allSafes.filter(safe => 
+        return allSafes.filter(safe =>
           orgSafes?.some(orgSafe => orgSafe.address === safe.address)
         )
       }
     }
   )
-  
+
   // Determine which data and loading state to use
   const safes = organizationId ? orgSafesWithEns : allSafesWithEns
-  const isLoading = organizationId 
-    ? (orgSafesLoading || orgEnsLoading) 
+  const isLoading = organizationId
+    ? (orgSafesLoading || orgEnsLoading)
     : allSafesLoading
 
   const handleChange = (value: string) => {
@@ -72,9 +73,12 @@ export default function SafeSelector({
         )}
         {safes?.map((safe) => (
           <SelectItem key={safe.address} value={safe.address}>
-            {safe.name
-              ? safe.name
-              : `${safe.address.slice(0, 6)}...${safe.address.slice(-4)}`}
+            <div className="flex items-center gap-2">
+              <ChainIcon chain={safe.chain} width={16} height={16} />
+              {safe.name
+                ? safe.name
+                : `${safe.address.slice(0, 6)}...${safe.address.slice(-4)}`}
+            </div>
           </SelectItem>
         ))}
         {safes?.length === 0 && (
