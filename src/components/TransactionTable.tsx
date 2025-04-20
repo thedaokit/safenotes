@@ -26,7 +26,7 @@ import { type AddressMap, fetchEnsNames } from '@/utils/fetch-ens-names'
 import { api } from '@/utils/trpc'
 import { TransactionCard } from '@/components/TransactionComponent/TransactionCard'
 import { transfersToTableFormat } from '@/utils/transfers-to-table-format'
-
+import { ChainIcon } from '@/components/ChainIcon'
 interface TransactionTableProps {
   transfers: TransferItem[]
   transferCategories: TransferCategoryItem[]
@@ -149,16 +149,16 @@ const TransactionDirectionAmount = ({
   const formattedAmount =
     tokenSymbol === 'ETH' || tokenSymbol === 'WETH' || !tokenSymbol
       ? `${(Number(amount) / Math.pow(10, 18)).toLocaleString(undefined, {
-          minimumFractionDigits: 1,
-          maximumFractionDigits: 1,
-        })} ${tokenSymbol || 'ETH'}`
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      })} ${tokenSymbol || 'ETH'}`
       : `${(Number(amount) / Math.pow(10, tokenDecimals || 18)).toLocaleString(
-          undefined,
-          {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          }
-        )} ${tokenSymbol}`
+        undefined,
+        {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }
+      )} ${tokenSymbol}`
 
   return (
     <div className="flex flex-col items-center gap-2 lg:flex-row">
@@ -309,33 +309,33 @@ export default function TransactionTable({
           currentCategoryId={
             editingTransfer
               ? transferCategories.find(
-                  (tc) => tc.transferId === editingTransfer
-                )?.categoryId || null
+                (tc) => tc.transferId === editingTransfer
+              )?.categoryId || null
               : null
           }
           currentDescription={
             editingTransfer
               ? transferCategories.find(
-                  (tc) => tc.transferId === editingTransfer
-                )?.description || ''
+                (tc) => tc.transferId === editingTransfer
+              )?.description || ''
               : ''
           }
           categories={categories}
           safeAddress={
             editingTransfer
               ? processedTransfers.find((t) => t.transferId === editingTransfer)
-                  ?.safeAddress || ''
+                ?.safeAddress || ''
               : ''
           }
           transactionHash={
             editingTransfer
               ? processedTransfers.find((t) => t.transferId === editingTransfer)
-                  ?.transactionHash || ''
+                ?.transactionHash || ''
               : ''
           }
         />
       )}
-      
+
       {/* Desktop View */}
       <div className="hidden md:block">
         <Table>
@@ -370,12 +370,22 @@ export default function TransactionTable({
                   )}
                   {/* Safe address */}
                   <TableCell className="min-w-48 sm:min-w-72">
-                    <Link
-                      target="_blank"
-                      href={`https://etherscan.io/address/${transfer.safeAddress}`}
-                    >
-                      {formatAddress(mainPartyAddress)}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <ChainIcon chain={transfer.safeChain} />
+                      </div>
+                      <div>
+                        <Link
+                          target="_blank"
+                          href={`https://etherscan.io/address/${transfer.safeAddress}`}
+                        >
+                          {formatAddress(mainPartyAddress)}
+                        </Link>
+                        <span className="block text-xs text-muted-foreground">
+                          {truncateAddress(mainPartyAddress)}
+                        </span>
+                      </div>
+                    </div>
                   </TableCell>
                   {/* Amount */}
                   <TableCell className="w-[200px]">
