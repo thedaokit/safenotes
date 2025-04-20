@@ -8,7 +8,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from '@/components/ui/hover-card'
-import { safes, SelectedSafe } from '@/db/schema'
+import { SelectedSafe } from '@/db/schema'
 import { publicClient } from '@/lib/web3'
 import { getSafeApiUrl, SAFE_API_URL_BASE_SUBPATH } from '@/utils/safe-global-adapter'
 
