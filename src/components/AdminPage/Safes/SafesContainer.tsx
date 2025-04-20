@@ -7,6 +7,7 @@ import { NewSafeDialog } from './NewSafeDialog'
 import { Safe } from '@/db/schema'
 import { toast } from 'sonner'
 import { Chain } from './NewSafeDialog'
+import { createSafeChainUniqueId } from '@/utils/safe-chain-unique-id'
 
 interface SafesContainerProps {
   organizationId: string
@@ -108,7 +109,7 @@ export function SafesContainer({ organizationId, safes, isLoading, isAdmin }: Sa
               <div>
                 {filteredSafes.map(safe => (
                   <SafesRow
-                    key={safe.address}
+                    key={createSafeChainUniqueId(safe.address, safe.chain)}
                     safe={safe}
                     canEditOrDelete={isAdmin}
                     onDeleteSuccess={invalidateSafes}

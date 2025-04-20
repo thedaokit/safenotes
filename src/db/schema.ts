@@ -87,6 +87,11 @@ export const safes = pgTable('safes', {
   }
 })
 
+export interface SelectedSafe {
+  address: string;
+  chain: Chain;
+}
+
 export type SafeItem = InferSelectModel<typeof safes>
 
 export const transfers = pgTable('transfers', {

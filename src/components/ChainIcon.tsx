@@ -25,10 +25,8 @@ export const ChainIcon: React.FC<ChainIconProps> = ({
   width = 24,
   height = 24,
 }) => {
-    console.log(chain)
   const iconPath = chainIconMap[chain];
-
-  console.log(iconPath)
+    
   return (
     <Image
       src={iconPath}

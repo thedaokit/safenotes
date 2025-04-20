@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/hover-card'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import {
+  SelectedSafe,
   type CategoryItem,
   type SafeItem,
   type TransferCategoryItem,
@@ -30,7 +31,7 @@ import { ChainIcon } from '@/components/ChainIcon'
 interface TransactionTableProps {
   transfers: TransferItem[]
   transferCategories: TransferCategoryItem[]
-  safeAddress: string | null
+  selectedSafe: SelectedSafe | null
   isLoading: boolean
   categories: CategoryItem[]
   allSafes: SafeItem[]
@@ -184,7 +185,7 @@ const TransactionDirectionAmount = ({
 export default function TransactionTable({
   transfers,
   transferCategories,
-  safeAddress,
+  selectedSafe,
   isLoading,
   categories,
   allSafes,
@@ -198,7 +199,7 @@ export default function TransactionTable({
   const utils = api.useUtils()
 
   // Process transfers to create rows for each safe involved
-  const processedTransfers = transfersToTableFormat(transfers, safeAddress, allSafes)
+  const processedTransfers = transfersToTableFormat(transfers, selectedSafe, allSafes)
 
   // Calculate pagination based on processed transfers
   const totalItems = processedTransfers.length
@@ -247,7 +248,6 @@ export default function TransactionTable({
     // Refetch the transfer categories to update the UI
     await Promise.all([
       utils.transfers.getTransfers.invalidate(),
-      utils.transfers.getAllTransfersByWallet.invalidate(),
       utils.categories.getTransferCategories.invalidate(),
     ])
   }

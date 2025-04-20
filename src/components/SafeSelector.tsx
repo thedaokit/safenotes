@@ -7,15 +7,18 @@ import {
 } from '@/components/ui/select'
 import { api } from '@/utils/trpc'
 import { ChainIcon } from '@/components/ChainIcon'
+import { createSafeChainUniqueId, parseSafeChainUniqueId } from '@/utils/safe-chain-unique-id'
+import { SelectedSafe } from '@/db/schema'
+
 
 interface SafeSelectorProps {
-  safeAddress: string | null
-  onChange: (value: string | null) => void
+  selectedSafe: SelectedSafe | null
+  onChange: (value: SelectedSafe | null) => void
   organizationId?: string // Optional organization ID parameter
 }
 
 export default function SafeSelector({
-  safeAddress,
+  selectedSafe,
   onChange,
   organizationId,
 }: SafeSelectorProps) {
@@ -53,12 +56,12 @@ export default function SafeSelector({
 
   const handleChange = (value: string) => {
     // Convert "all" back to null when selected
-    onChange(value === 'all' ? null : value)
+    onChange(value === 'all' ? null : parseSafeChainUniqueId(value))
   }
 
   return (
     <Select
-      value={safeAddress === null ? 'all' : safeAddress}
+      value={selectedSafe === null ? 'all' : createSafeChainUniqueId(selectedSafe.address, selectedSafe.chain)}
       onValueChange={handleChange}
     >
       <SelectTrigger className="min-w-[300px] max-w-[367px] bg-neutral-50 py-5 text-lg font-bold">
@@ -72,7 +75,7 @@ export default function SafeSelector({
           </SelectItem>
         )}
         {safes?.map((safe) => (
-          <SelectItem key={safe.address} value={safe.address}>
+          <SelectItem key={createSafeChainUniqueId(safe.address, safe.chain)} value={createSafeChainUniqueId(safe.address, safe.chain)}>
             <div className="flex items-center gap-2">
               <ChainIcon chain={safe.chain} width={24} height={24} />
               {safe.name
