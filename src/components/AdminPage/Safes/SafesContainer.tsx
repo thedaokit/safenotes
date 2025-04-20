@@ -6,6 +6,7 @@ import { SafesRow } from './SafesRow'
 import { NewSafeDialog } from './NewSafeDialog'
 import { Safe } from '@/db/schema'
 import { toast } from 'sonner'
+import { Chain } from './NewSafeDialog'
 
 interface SafesContainerProps {
   organizationId: string
@@ -44,12 +45,13 @@ export function SafesContainer({ organizationId, safes, isLoading, isAdmin }: Sa
     return addressMatch || ensMatch
   }) || []
 
-  const handleAddSafe = (address: string) => {
+  const handleAddSafe = (address: string, chain: Chain) => {
     if (!address.trim()) return
     
     createSafe({
       address: address.trim(),
-      organizationId
+      organizationId,
+      chain
     })
   }
 

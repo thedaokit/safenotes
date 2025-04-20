@@ -2,7 +2,7 @@ import { eq, and } from 'drizzle-orm'
 import { Address } from 'viem'
 import { z } from 'zod'
 
-import { safes } from '@/db/schema'
+import { safes, chainEnum } from '@/db/schema'
 import { publicClient } from '@/lib/web3'
 import {
   adminProcedure,
@@ -38,9 +38,9 @@ export const safesRouter = createTRPCRouter({
   create: protectedProcedure
     .input(
       z.object({
-        address: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
-        chain: z.enum(['ETH', 'ARB', 'UNI']).default('ETH'),
-        organizationId: z.string().uuid(),
+        address: z.string().regex(/^0x[a-fA-F0-9]{40}$/).nonempty(),
+        chain: z.enum(chainEnum.enumValues),
+        organizationId: z.string().uuid().nonempty(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -50,7 +50,8 @@ export const safesRouter = createTRPCRouter({
         .where(
           and(
             eq(safes.address, input.address),
-            eq(safes.organizationId, input.organizationId)
+            eq(safes.organizationId, input.organizationId),
+            eq(safes.chain, input.chain)
           )
         )
         .limit(1)
@@ -73,7 +74,8 @@ export const safesRouter = createTRPCRouter({
           .where(
             and(
               eq(safes.address, input.address),
-              eq(safes.organizationId, input.organizationId)
+              eq(safes.organizationId, input.organizationId),
+              eq(safes.chain, input.chain)
             )
           )
         return ctx.db.select().from(safes)
