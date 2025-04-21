@@ -1,4 +1,26 @@
 import { getAddress } from 'viem'
+import { Chain } from '@/db/schema'
+
+export const SAFE_API_URL_BASE_SUBPATH = '/api/v1'
+
+// Map of chain IDs to Safe Transaction Service API URLs
+const SAFE_API_URLS: Record<Chain, string> = {
+  'ETH': 'https://safe-transaction-mainnet.safe.global',  // Ethereum Mainnet
+  'ARB': 'https://safe-transaction-arbitrum.safe.global', // Arbitrum
+  'UNI': 'https://safe-transaction-uni.safe.global',      // Uni
+  'BASE': 'https://safe-transaction-base.safe.global', // Base
+  'LINEA': 'https://safe-transaction-linea.safe.global', // Linea
+  'OP': 'https://safe-transaction-optimism.safe.global', // Optimism
+  'SCROLL': 'https://safe-transaction-scroll.safe.global', // Scroll
+}
+
+export function getSafeApiUrl(chain: Chain): string {
+  return SAFE_API_URLS[chain]
+}
+
+export function getSafeApiUrlWithSubpath(chain: Chain): string {
+  return `${getSafeApiUrl(chain)}${SAFE_API_URL_BASE_SUBPATH}`
+}
 
 export interface SafeTransferResponse {
   count: number
@@ -30,10 +52,11 @@ export interface SafeTransfer {
 
 export async function fetchSafeTransfers(
   safeAddress: string,
+  chain: Chain,
   limit: number = 100
 ): Promise<SafeTransferResponse> {
   const checksummedSafeAddress = getAddress(safeAddress)
-  const apiUrl = `https://safe-transaction-mainnet.safe.global/api/v1/safes/${checksummedSafeAddress}/transfers/?limit=${limit}`
+  const apiUrl = `${getSafeApiUrlWithSubpath(chain)}/safes/${checksummedSafeAddress}/transfers/?limit=${limit}`
   const response = await fetch(apiUrl)
 
   if (!response.ok) {
