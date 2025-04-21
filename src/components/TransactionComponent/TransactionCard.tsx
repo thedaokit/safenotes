@@ -9,9 +9,46 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from '@/components/ui/hover-card';
-import { type TransferItem, type TransferCategoryItem, type CategoryItem } from '@/db/schema';
+import { type TransferItem, type TransferCategoryItem, type CategoryItem, type Chain } from '@/db/schema';
 import { type AddressMap } from '@/utils/fetch-ens-names'
+import { ChainIcon } from '@/components/ChainIcon';
 
+interface AddressSectionProps {
+  label: string;
+  address: string;
+  safeAddress: string;
+  safeChain: Chain;
+  ensNames: AddressMap;
+}
+
+const AddressSection: React.FC<AddressSectionProps> = ({
+  label,
+  address,
+  safeAddress,
+  safeChain,
+  ensNames,
+}) => {
+  const isSafeAddress = address.toLowerCase() === safeAddress.toLowerCase();
+  
+  return (
+    <div className="space-y-1">
+      <div className="text-sm text-muted-foreground font-bold">{label}</div>
+      <div className="flex justify-between gap-2">
+        <Link
+          href={`https://etherscan.io/address/${address}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm hover:text-primary"
+        >
+          {ensNames[address] || truncateAddress(address)}
+        </Link>
+        {isSafeAddress && (
+          <ChainIcon chain={safeChain} width={24} height={24} />
+        )}
+      </div>
+    </div>
+  );
+};
 
 interface TransactionCardProps {
   transfer: TransferItem & { viewType: 'in' | 'out' };
@@ -87,30 +124,22 @@ export function TransactionCard({
         </div>
 
         {/* From Address */}
-        <div className="space-y-1">
-          <div className="text-sm text-muted-foreground font-bold">From</div>
-          <Link
-            href={`https://etherscan.io/address/${transfer.fromAddress}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm hover:text-primary"
-          >
-            {ensNames[transfer.fromAddress] || truncateAddress(transfer.fromAddress)}
-          </Link>
-        </div>
+        <AddressSection
+          label="From"
+          address={transfer.fromAddress}
+          safeAddress={transfer.safeAddress}
+          safeChain={transfer.safeChain}
+          ensNames={ensNames}
+        />
 
         {/* To Address */}
-        <div className="space-y-1">
-          <div className="text-sm text-muted-foreground font-bold">To</div>
-          <Link
-            href={`https://etherscan.io/address/${transfer.toAddress}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm hover:text-primary"
-          >
-            {ensNames[transfer.toAddress] || truncateAddress(transfer.toAddress)}
-          </Link>
-        </div>
+        <AddressSection
+          label="To"
+          address={transfer.toAddress}
+          safeAddress={transfer.safeAddress}
+          safeChain={transfer.safeChain}
+          ensNames={ensNames}
+        />
 
         {/* Category and Description */}
         <div className="space-y-1">
