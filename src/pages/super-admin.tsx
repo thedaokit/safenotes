@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/select'
 import { Trash2 } from 'lucide-react'
 import { AddressDisplay } from '@/components/AddressDisplay'
-import { createSafeChainUniqueId } from '@/utils/safe-chain-unique-id'
 
 
 export default function Admin() {
@@ -365,7 +364,7 @@ export default function Admin() {
                       <div className="divide-y rounded-md border">
                         {safes.map((safe) => (
                           <div 
-                            key={createSafeChainUniqueId(safe.address, safe.chain)}
+                            key={safe.address}
                             className="flex items-center justify-between p-3"
                           >
                             <AddressDisplay address={safe.address} chain={safe.chain} />

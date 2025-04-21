@@ -1,7 +1,7 @@
 import { desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { transferCategories, transfers, chainEnum } from '@/db/schema'
+import { transferCategories, transfers } from '@/db/schema'
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -40,14 +40,12 @@ export const transfersRouter = createTRPCRouter({
     .input(
       z.object({
         safeAddress: z.string(),
-        chain: z.enum(chainEnum.enumValues),
         limit: z.number().default(100),
       })
     )
     .query(async ({ input }) => {
       const { results } = await fetchSafeTransfers(
         input.safeAddress,
-        input.chain,
         input.limit
       )
       return filterTrustedTransfers(results)
@@ -85,16 +83,22 @@ export const transfersRouter = createTRPCRouter({
 
       return { success: true }
     }),
+  getAllTransfersByWallet: publicProcedure
+    .input(
+      z.object({
+        safeAddress: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      return ctx.db
+        .select()
+        .from(transfers)
+        .where(eq(transfers.safeAddress, input.safeAddress))
+    }),
   getTransfers: publicProcedure
     .input(
       z.object({
-        safeAddress: z.string().optional(),
-        chain: z.enum(chainEnum.enumValues).optional(),
-      }).refine((data) => {
-        // Either both parameters are provided or neither is provided
-        return (data.safeAddress && data.chain) || (!data.safeAddress && !data.chain)
-      }, {
-        message: "Both safeAddress and chain must be provided together, or neither should be provided"
+        safeAddress: z.string().nullable().optional(),
       })
     )
     .query(async ({ ctx, input }) => {
@@ -103,12 +107,11 @@ export const transfersRouter = createTRPCRouter({
         .from(transfers)
         .orderBy(desc(transfers.executionDate))
 
-      if (input.safeAddress && input.chain) {
+      if (input.safeAddress) {
         const address = input.safeAddress.toLowerCase()
         query.where(
           sql`LOWER(${transfers.fromAddress}) = ${address} OR LOWER(${transfers.toAddress}) = ${address}`
         )
-        query.where(eq(transfers.safeChain, input.chain))
       }
 
       return query

@@ -8,9 +8,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from '@/components/ui/hover-card'
-import { SelectedSafe } from '@/db/schema'
 import { publicClient } from '@/lib/web3'
-import { getSafeApiUrl, SAFE_API_URL_BASE_SUBPATH } from '@/utils/safe-global-adapter'
 
 interface Token {
   name: string
@@ -31,21 +29,21 @@ interface SafeInfo {
 }
 
 interface SafeStatsProps {
-  selectedSafe: SelectedSafe | null
+  safeAddress: string | null
 }
 
-export const SafeStats = ({ selectedSafe }: SafeStatsProps) => {
+export const SafeStats = ({ safeAddress }: SafeStatsProps) => {
   const [isSignersOpen, setIsSignersOpen] = useState(false)
   const [isBalanceOpen, setIsBalanceOpen] = useState(false)
 
   const { data: signersData } = useQuery({
-    queryKey: ['safe-info', selectedSafe],
+    queryKey: ['safe-info', safeAddress],
     queryFn: async () => {
-      if (!selectedSafe) return null
-      const normalizedSafeAddress = getAddress(selectedSafe.address)
+      if (!safeAddress) return null
+      const normalizedSafeAddress = getAddress(safeAddress)
       const safeApiUrl = new URL(
-        `${SAFE_API_URL_BASE_SUBPATH}/safes/${normalizedSafeAddress}/`,
-        getSafeApiUrl(selectedSafe.chain)
+        `/api/v1/safes/${normalizedSafeAddress}/`,
+        process.env.NEXT_PUBLIC_SAFES_API_URL
       )
 
       const response = await fetch(safeApiUrl)
@@ -55,17 +53,17 @@ export const SafeStats = ({ selectedSafe }: SafeStatsProps) => {
 
       return (await response.json()) as SafeInfo
     },
-    enabled: !!selectedSafe,
+    enabled: !!safeAddress,
   })
 
   const { data: balances } = useQuery({
-    queryKey: ['safe-balances', selectedSafe],
+    queryKey: ['safe-balances', safeAddress],
     queryFn: async () => {
-      if (!selectedSafe) return null
-      const normalizedSafeAddress = getAddress(selectedSafe.address)
+      if (!safeAddress) return null
+      const normalizedSafeAddress = getAddress(safeAddress)
       const safeApiUrl = new URL(
-        `${SAFE_API_URL_BASE_SUBPATH}/safes/${normalizedSafeAddress}/balances/`,
-        getSafeApiUrl(selectedSafe.chain)
+        `/api/v1/safes/${normalizedSafeAddress}/balances/`,
+        process.env.NEXT_PUBLIC_SAFES_API_URL
       )
       safeApiUrl.searchParams.set('trusted', 'true')
       safeApiUrl.searchParams.set('exclude_spam', 'true')
@@ -77,7 +75,7 @@ export const SafeStats = ({ selectedSafe }: SafeStatsProps) => {
 
       return (await response.json()) as Balance[]
     },
-    enabled: !!selectedSafe,
+    enabled: !!safeAddress,
   })
 
   const { data: ensNames, isLoading: isEnsNamesLoading } = useQuery({
@@ -115,7 +113,7 @@ export const SafeStats = ({ selectedSafe }: SafeStatsProps) => {
     enabled: !!signersData?.owners,
   })
 
-  if (!selectedSafe) return null
+  if (!safeAddress) return null
 
   return (
     <div className="flex flex-row items-start gap-4 sm:items-center">

@@ -15,10 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { createSafeChainUniqueId  } from '@/utils/safe-chain-unique-id'
 import { api } from '@/utils/trpc'
-import { Transfer } from '@/db/schema'
-import { ChainIcon } from '@/components/ChainIcon'
 
 interface SyncStatus {
   [key: string]: {
@@ -78,7 +75,7 @@ export function SyncTransactionsDialog({
     // Initialize all safes as pending
     const initialStatus: SyncStatus = {}
     safesWithEns.forEach((safe) => {
-      initialStatus[createSafeChainUniqueId(safe.address, safe.chain)] = {
+      initialStatus[safe.address] = {
         status: 'pending',
         progress: { current: 0, total: 0, skipped: 0 },
       }
@@ -87,10 +84,9 @@ export function SyncTransactionsDialog({
 
     // Sync each safe sequentially
     for (const safe of safesWithEns) {
-      const safeChainUniqueId = createSafeChainUniqueId(safe.address, safe.chain)
       setSyncStatus((prev) => ({
         ...prev,
-        [safeChainUniqueId]: {
+        [safe.address]: {
           status: 'syncing',
           progress: { current: 0, total: 0, skipped: 0 },
         },
@@ -99,27 +95,25 @@ export function SyncTransactionsDialog({
       try {
         // Get existing transfers for this safe
         const existingTransfers =
-          await utils.client.transfers.getTransfers.query({
+          await utils.client.transfers.getAllTransfersByWallet.query({
             safeAddress: safe.address,
-            chain: safe.chain,
           })
         const existingTransferIds = new Set(
-          existingTransfers.map((t: Transfer) => t.transferId)
+          existingTransfers.map((t) => t.transferId)
         )
 
         // Fetch new transfers with selected limit
         const newTransfers =
           await utils.client.transfers.getTransfersPerWallet.query({
             safeAddress: safe.address,
-            chain: safe.chain,
             limit: transferLimit,
           })
 
         // Update total in progress
         setSyncStatus((prev) => ({
           ...prev,
-          [safeChainUniqueId]: {
-            ...prev[safeChainUniqueId],
+          [safe.address]: {
+            ...prev[safe.address],
             progress: {
               current: 0,
               total: newTransfers.length,
@@ -136,12 +130,12 @@ export function SyncTransactionsDialog({
             // Skip existing transfer
             setSyncStatus((prev) => ({
               ...prev,
-              [safeChainUniqueId]: {
-                ...prev[safeChainUniqueId],
+              [safe.address]: {
+                ...prev[safe.address],
                 progress: {
-                  ...prev[safeChainUniqueId].progress!,
+                  ...prev[safe.address].progress!,
                   current: i + 1,
-                  skipped: prev[safeChainUniqueId].progress!.skipped + 1,
+                  skipped: prev[safe.address].progress!.skipped + 1,
                 },
               },
             }))
@@ -177,10 +171,10 @@ export function SyncTransactionsDialog({
             // Update progress
             setSyncStatus((prev) => ({
               ...prev,
-              [safeChainUniqueId]: {
-                ...prev[safeChainUniqueId],
+              [safe.address]: {
+                ...prev[safe.address],
                 progress: {
-                  ...prev[safeChainUniqueId].progress!,
+                  ...prev[safe.address].progress!,
                   current: i + 1,
                 },
               },
@@ -189,11 +183,11 @@ export function SyncTransactionsDialog({
             // Set error status and halt the sync
             setSyncStatus((prev) => ({
               ...prev,
-              [safeChainUniqueId]: {
+              [safe.address]: {
                 status: 'error',
                 message:
                   error instanceof Error ? error.message : 'Unknown error',
-                progress: prev[safeChainUniqueId].progress,
+                progress: prev[safe.address].progress,
               },
             }))
             // Exit the entire sync process
@@ -207,18 +201,18 @@ export function SyncTransactionsDialog({
         // Mark as completed only if we get through all transfers
         setSyncStatus((prev) => ({
           ...prev,
-          [safeChainUniqueId]: {
+          [safe.address]: {
             status: 'completed',
-            progress: prev[safeChainUniqueId].progress,
+            progress: prev[safe.address].progress,
           },
         }))
       } catch (error) {
         setSyncStatus((prev) => ({
           ...prev,
-          [safeChainUniqueId]: {
+          [safe.address]: {
             status: 'error',
             message: error instanceof Error ? error.message : 'Unknown error',
-            progress: prev[safeChainUniqueId].progress,
+            progress: prev[safe.address].progress,
           },
         }))
         // Exit the sync process on any other errors
@@ -280,28 +274,24 @@ export function SyncTransactionsDialog({
               <div className="text-center py-4">No safes found for this organization</div>
             ) : (
               safesWithEns.map((safe) => {
-                const safeChainUniqueId = createSafeChainUniqueId(safe.address, safe.chain)
-                const status = syncStatus[safeChainUniqueId]
+                const status = syncStatus[safe.address]
                 const progress = status?.progress
 
                 return (
                   <div
-                    key={safeChainUniqueId}
+                    key={safe.address}
                     className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
                   >
                     <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-2">
-                        <ChainIcon chain={safe.chain} width={20} height={20} />
-                        <div className="flex flex-col gap-1">
-                          <span className="font-mono text-sm text-gray-600">
-                            {formatAddress(safe.address)}
+                      <div className="flex flex-col gap-1">
+                        <span className="font-mono text-sm text-gray-600">
+                          {formatAddress(safe.address)}
+                        </span>
+                        {safe.name && (
+                          <span className="text-sm text-gray-500">
+                            {safe.name}
                           </span>
-                          {safe.name && (
-                            <span className="text-sm text-gray-500">
-                              {safe.name}
-                            </span>
-                          )}
-                        </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         {status?.status === 'syncing' ? (

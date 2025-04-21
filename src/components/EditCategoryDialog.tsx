@@ -62,6 +62,7 @@ export function EditCategoryDialog({
     onSuccess: async () => {
       await Promise.all([
         utils.transfers.getTransfers.invalidate(),
+        utils.transfers.getAllTransfersByWallet.invalidate(),
         utils.categories.getAllTransferCategories.invalidate(),
       ])
       toast.success('Category updated successfully')

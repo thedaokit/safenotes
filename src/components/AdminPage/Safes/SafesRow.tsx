@@ -5,7 +5,6 @@ import { api } from '@/utils/trpc'
 import { ConfirmDeleteDialog } from '../ConfirmDeleteDialog'
 import { Safe } from '@/db/schema'
 import { toast } from 'sonner'
-import { ChainIcon } from '@/components/ChainIcon'
 
 interface SafesRowProps {
   safe: Safe & { name?: string }
@@ -63,25 +62,22 @@ export function SafesRow({ safe, onDeleteSuccess, canEditOrDelete }: SafesRowPro
     <>
       <div className="flex items-center justify-between py-3 border-b border-gray-100 group">
           <>
-            <div className="flex items-center gap-4">
-              <ChainIcon chain={safe.chain} width={24} height={24} />
-              <div className="flex flex-col">
-                {safe?.name && (
-                  <span className="text-gray-900 font-medium">{safe.name}</span>
-                )}
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600 font-mono text-sm">
-                    {truncateAddress(safe.address)}
-                  </span>
-                  <a 
-                    href={getEtherscanLink(safe.address)} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:text-blue-600"
-                  >
-                    <ExternalLink size={14} />
-                  </a>
-                </div>
+            <div className="flex flex-col">
+              {safe?.name && (
+                <span className="text-gray-900 font-medium">{safe.name}</span>
+              )}
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600 font-mono text-sm">
+                  {truncateAddress(safe.address)}
+                </span>
+                <a 
+                  href={getEtherscanLink(safe.address)} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:text-blue-600"
+                >
+                  <ExternalLink size={14} />
+                </a>
               </div>
             </div>
             {canEditOrDelete && (

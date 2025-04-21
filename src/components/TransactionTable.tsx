@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/hover-card'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import {
-  SelectedSafe,
   type CategoryItem,
   type SafeItem,
   type TransferCategoryItem,
@@ -27,11 +26,11 @@ import { type AddressMap, fetchEnsNames } from '@/utils/fetch-ens-names'
 import { api } from '@/utils/trpc'
 import { TransactionCard } from '@/components/TransactionComponent/TransactionCard'
 import { transfersToTableFormat } from '@/utils/transfers-to-table-format'
-import { ChainIcon } from '@/components/ChainIcon'
+
 interface TransactionTableProps {
   transfers: TransferItem[]
   transferCategories: TransferCategoryItem[]
-  selectedSafe: SelectedSafe | null
+  safeAddress: string | null
   isLoading: boolean
   categories: CategoryItem[]
   allSafes: SafeItem[]
@@ -150,16 +149,16 @@ const TransactionDirectionAmount = ({
   const formattedAmount =
     tokenSymbol === 'ETH' || tokenSymbol === 'WETH' || !tokenSymbol
       ? `${(Number(amount) / Math.pow(10, 18)).toLocaleString(undefined, {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1,
-      })} ${tokenSymbol || 'ETH'}`
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        })} ${tokenSymbol || 'ETH'}`
       : `${(Number(amount) / Math.pow(10, tokenDecimals || 18)).toLocaleString(
-        undefined,
-        {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0,
-        }
-      )} ${tokenSymbol}`
+          undefined,
+          {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          }
+        )} ${tokenSymbol}`
 
   return (
     <div className="flex flex-col items-center gap-2 lg:flex-row">
@@ -185,7 +184,7 @@ const TransactionDirectionAmount = ({
 export default function TransactionTable({
   transfers,
   transferCategories,
-  selectedSafe,
+  safeAddress,
   isLoading,
   categories,
   allSafes,
@@ -199,7 +198,7 @@ export default function TransactionTable({
   const utils = api.useUtils()
 
   // Process transfers to create rows for each safe involved
-  const processedTransfers = transfersToTableFormat(transfers, selectedSafe, allSafes)
+  const processedTransfers = transfersToTableFormat(transfers, safeAddress, allSafes)
 
   // Calculate pagination based on processed transfers
   const totalItems = processedTransfers.length
@@ -248,6 +247,7 @@ export default function TransactionTable({
     // Refetch the transfer categories to update the UI
     await Promise.all([
       utils.transfers.getTransfers.invalidate(),
+      utils.transfers.getAllTransfersByWallet.invalidate(),
       utils.categories.getTransferCategories.invalidate(),
     ])
   }
@@ -309,33 +309,33 @@ export default function TransactionTable({
           currentCategoryId={
             editingTransfer
               ? transferCategories.find(
-                (tc) => tc.transferId === editingTransfer
-              )?.categoryId || null
+                  (tc) => tc.transferId === editingTransfer
+                )?.categoryId || null
               : null
           }
           currentDescription={
             editingTransfer
               ? transferCategories.find(
-                (tc) => tc.transferId === editingTransfer
-              )?.description || ''
+                  (tc) => tc.transferId === editingTransfer
+                )?.description || ''
               : ''
           }
           categories={categories}
           safeAddress={
             editingTransfer
               ? processedTransfers.find((t) => t.transferId === editingTransfer)
-                ?.safeAddress || ''
+                  ?.safeAddress || ''
               : ''
           }
           transactionHash={
             editingTransfer
               ? processedTransfers.find((t) => t.transferId === editingTransfer)
-                ?.transactionHash || ''
+                  ?.transactionHash || ''
               : ''
           }
         />
       )}
-
+      
       {/* Desktop View */}
       <div className="hidden md:block">
         <Table>
@@ -370,22 +370,12 @@ export default function TransactionTable({
                   )}
                   {/* Safe address */}
                   <TableCell className="min-w-48 sm:min-w-72">
-                    <div className="flex items-center gap-2">
-                      <div>
-                        <ChainIcon chain={transfer.safeChain} />
-                      </div>
-                      <div>
-                        <Link
-                          target="_blank"
-                          href={`https://etherscan.io/address/${transfer.safeAddress}`}
-                        >
-                          {formatAddress(mainPartyAddress)}
-                        </Link>
-                        <span className="block text-xs text-muted-foreground">
-                          {truncateAddress(mainPartyAddress)}
-                        </span>
-                      </div>
-                    </div>
+                    <Link
+                      target="_blank"
+                      href={`https://etherscan.io/address/${transfer.safeAddress}`}
+                    >
+                      {formatAddress(mainPartyAddress)}
+                    </Link>
                   </TableCell>
                   {/* Amount */}
                   <TableCell className="w-[200px]">

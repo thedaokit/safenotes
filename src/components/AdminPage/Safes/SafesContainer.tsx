@@ -6,8 +6,6 @@ import { SafesRow } from './SafesRow'
 import { NewSafeDialog } from './NewSafeDialog'
 import { Safe } from '@/db/schema'
 import { toast } from 'sonner'
-import { Chain } from './NewSafeDialog'
-import { createSafeChainUniqueId } from '@/utils/safe-chain-unique-id'
 
 interface SafesContainerProps {
   organizationId: string
@@ -46,13 +44,12 @@ export function SafesContainer({ organizationId, safes, isLoading, isAdmin }: Sa
     return addressMatch || ensMatch
   }) || []
 
-  const handleAddSafe = (address: string, chain: Chain) => {
+  const handleAddSafe = (address: string) => {
     if (!address.trim()) return
     
     createSafe({
       address: address.trim(),
-      organizationId,
-      chain
+      organizationId
     })
   }
 
@@ -109,7 +106,7 @@ export function SafesContainer({ organizationId, safes, isLoading, isAdmin }: Sa
               <div>
                 {filteredSafes.map(safe => (
                   <SafesRow
-                    key={createSafeChainUniqueId(safe.address, safe.chain)}
+                    key={safe.address}
                     safe={safe}
                     canEditOrDelete={isAdmin}
                     onDeleteSuccess={invalidateSafes}

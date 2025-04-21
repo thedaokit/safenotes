@@ -14,12 +14,11 @@ import { SyncTransactionsDialog } from '@/components/SyncTransactionsDialog'
 import TransactionTable from '@/components/TransactionTable';
 import { Button } from '@/components/ui/button';
 import { transfersToCsvFormat, transfersToTableFormat } from '@/utils/transfers-to-table-format';
-import {SelectedSafe} from '@/db/schema'
 
 export default function OrganizationPage() {
   const router = useRouter();
   const { org } = router.query;
-  const [selectedSafe, setSelectedSafe] = useState<SelectedSafe | null>(null);
+  const [selectedSafe, setSelectedSafe] = useState<string | null>(null);
   const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const { data: session } = useSession();
@@ -36,7 +35,7 @@ export default function OrganizationPage() {
 
   // Get all transactions for this organization's safes
   const { data: transfers, isLoading: transfersLoading, error: transfersError } = api.transfers.getTransfers.useQuery(
-    { safeAddress: selectedSafe?.address, chain: selectedSafe?.chain },
+    { safeAddress: selectedSafe },
     { enabled: !!safes?.length }
   );
 
@@ -127,11 +126,11 @@ export default function OrganizationPage() {
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-4">
             <SafeSelector
-              selectedSafe={selectedSafe}
+              safeAddress={selectedSafe}
               onChange={setSelectedSafe}
               organizationId={organization?.id ?? ''}
             />
-            <SafeStats selectedSafe={selectedSafe} />
+            <SafeStats safeAddress={selectedSafe} />
           </div>
           {/* Sync button above transaction table */}
           {isAdmin && (
@@ -167,7 +166,7 @@ export default function OrganizationPage() {
             transfers={transfers}
             transferCategories={transferCategories || []}
             categories={categories || []}
-            selectedSafe={selectedSafe}
+            safeAddress={selectedSafe}
             isLoading={isLoading}
             allSafes={safes || []}
             isAdmin={isAdmin}
