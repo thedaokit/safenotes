@@ -121,7 +121,7 @@ export function NewSafeDialog({ onAddSafe, isLoading = false }: NewSafeDialogPro
                   <SelectItem value="UNI">
                     <div className="flex items-center gap-2">
                       <ChainIcon chain="UNI" width={16} height={16} />
-                      <span>Uniswap</span>
+                      <span>Unichain</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="BASE">
