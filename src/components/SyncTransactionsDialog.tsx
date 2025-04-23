@@ -154,6 +154,7 @@ export function SyncTransactionsDialog({
               transfer: {
                 transferId: transfer.transferId,
                 safeAddress: safe.address,
+                safeChain: transfer.safeChain,
                 type: transfer.type,
                 executionDate: transfer.executionDate,
                 blockNumber: transfer.blockNumber,

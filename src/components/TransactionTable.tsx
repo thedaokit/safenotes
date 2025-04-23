@@ -17,6 +17,7 @@ import {
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import {
   SelectedSafe,
+  type Chain,
   type CategoryItem,
   type SafeItem,
   type TransferCategoryItem,
@@ -28,6 +29,8 @@ import { api } from '@/utils/trpc'
 import { TransactionCard } from '@/components/TransactionComponent/TransactionCard'
 import { transfersToTableFormat } from '@/utils/transfers-to-table-format'
 import { ChainIcon } from '@/components/ChainIcon'
+import { getAddressUrl, getTransactionUrl } from '@/utils/safe-to-block-explorer'
+
 interface TransactionTableProps {
   transfers: TransferItem[]
   transferCategories: TransferCategoryItem[]
@@ -138,6 +141,7 @@ interface TransactionDirectionAmountProps {
   amount: string
   tokenSymbol: string
   tokenDecimals: number
+  chain: Chain  
 }
 
 const TransactionDirectionAmount = ({
@@ -146,6 +150,7 @@ const TransactionDirectionAmount = ({
   amount,
   tokenSymbol,
   tokenDecimals,
+  chain,
 }: TransactionDirectionAmountProps) => {
   const formattedAmount =
     tokenSymbol === 'ETH' || tokenSymbol === 'WETH' || !tokenSymbol
@@ -164,11 +169,11 @@ const TransactionDirectionAmount = ({
   return (
     <div className="flex flex-col items-center gap-2 lg:flex-row">
       <Link
-        href={`https://etherscan.io/tx/${transactionHash}`}
+        href={getTransactionUrl(chain, transactionHash)}
         target="_blank"
         rel="noopener noreferrer"
         className="cursor-pointer hover:text-blue-500"
-        title="View on Etherscan"
+        title="View on Block Explorer"
       >
         <Image
           src={isOutgoing ? '/img/out-arrow.svg' : '/img/in-arrow.svg'}
@@ -377,7 +382,7 @@ export default function TransactionTable({
                       <div>
                         <Link
                           target="_blank"
-                          href={`https://etherscan.io/address/${transfer.safeAddress}`}
+                          href={getAddressUrl(transfer.safeChain, transfer.safeAddress)}
                         >
                           {formatAddress(mainPartyAddress)}
                         </Link>
@@ -395,13 +400,14 @@ export default function TransactionTable({
                       amount={transfer.value || '0'}
                       tokenSymbol={transfer.tokenSymbol || ''}
                       tokenDecimals={transfer.tokenDecimals || 18}
+                      chain={transfer.safeChain}
                     />
                   </TableCell>
                   {/* Counterparty address */}
                   <TableCell className="min-w-48" title={counterpartyAddress}>
                     <Link
                       target="_blank"
-                      href={`https://etherscan.io/address/${counterpartyAddress}`}
+                      href={getAddressUrl(transfer.safeChain, counterpartyAddress)}
                     >
                       {formatAddress(counterpartyAddress)}
                     </Link>

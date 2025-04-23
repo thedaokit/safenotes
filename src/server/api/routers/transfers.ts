@@ -14,13 +14,15 @@ import {
 import { TRPCError } from '@trpc/server'
 
 const safeTransferSchema = z.object({
+  transferId: z.string(),
+  safeAddress: z.string(),
+  safeChain: z.enum(chainEnum.enumValues),
   type: z.enum(['ETHER_TRANSFER', 'ERC20_TRANSFER']),
   executionDate: z.string(),
   blockNumber: z.number(),
   transactionHash: z.string(),
-  transferId: z.string(),
-  to: z.string(),
   from: z.string(),
+  to: z.string(),
   value: z.string(),
   tokenAddress: z.string().nullable(),
   tokenInfo: z
@@ -32,7 +34,6 @@ const safeTransferSchema = z.object({
       trusted: z.boolean(),
     })
     .nullable(),
-  safeAddress: z.string(),
 })
 
 export const transfersRouter = createTRPCRouter({
@@ -66,7 +67,7 @@ export const transfersRouter = createTRPCRouter({
         .values({
           transferId: transfer.transferId,
           safeAddress: transfer.safeAddress,
-          safeChain: 'ETH',
+          safeChain: transfer.safeChain,
           type: transfer.type,
           executionDate: new Date(transfer.executionDate),
           blockNumber: transfer.blockNumber,

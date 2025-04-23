@@ -12,6 +12,7 @@ import {
 import { type TransferItem, type TransferCategoryItem, type CategoryItem, type Chain } from '@/db/schema';
 import { type AddressMap } from '@/utils/fetch-ens-names'
 import { ChainIcon } from '@/components/ChainIcon';
+import { getAddressUrl, getTransactionUrl } from '@/utils/safe-to-block-explorer';
 
 interface AddressSectionProps {
   label: string;
@@ -35,7 +36,7 @@ const AddressSection: React.FC<AddressSectionProps> = ({
       <div className="text-sm text-muted-foreground font-bold">{label}</div>
       <div className="flex justify-between gap-2">
         <Link
-          href={`https://etherscan.io/address/${address}`}
+          href={getAddressUrl(safeChain, address)}
           target="_blank"
           rel="noopener noreferrer"
           className="text-sm hover:text-primary"
@@ -114,7 +115,7 @@ export function TransactionCard({
             <span className="font-medium">{formattedAmount}</span>
           </div>
           <Link
-            href={`https://etherscan.io/tx/${transfer.transactionHash}`}
+            href={getTransactionUrl(transfer.safeChain, transfer.transactionHash)}
             target="_blank"
             rel="noopener noreferrer"
             className="text-muted-foreground hover:text-primary"

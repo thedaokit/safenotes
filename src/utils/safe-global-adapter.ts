@@ -29,6 +29,7 @@ export interface SafeTransferResponse {
 
 export interface SafeTransfer {
   safeAddress: string
+  safeChain: Chain
   type: 'ETHER_TRANSFER' | 'ERC20_TRANSFER'
   executionDate: string
   blockNumber: number
@@ -66,6 +67,7 @@ export async function fetchSafeTransfers(
   const transfers = data.results.map((transfer: SafeTransfer) => ({
     ...transfer,
     safeAddress,
+    safeChain: chain,
   }))
 
   return {
