@@ -21,7 +21,13 @@ export const chainEnum = pgEnum('chain', [
   'ETH', // ethereum | 1
   'ARB', // arbitrum | 42161
   'UNI', // uni | 130 | 0x82
+  'BASE', // base | 8453
+  'LINEA', // linea | 59144
+  'OP', // optimism | 10
+  'SCROLL', // scroll | 534352
 ])
+
+export type Chain = typeof chainEnum.enumValues[number]
 
 // Define organizations table with additional fields
 export const organizations = pgTable('organizations', {
@@ -80,6 +86,11 @@ export const safes = pgTable('safes', {
     pk: primaryKey({ columns: [table.address, table.chain] }),
   }
 })
+
+export interface SelectedSafe {
+  address: string;
+  chain: Chain;
+}
 
 export type SafeItem = InferSelectModel<typeof safes>
 

@@ -1,4 +1,5 @@
 import {
+    SelectedSafe,
     type SafeItem,
     type TransferItem,
     type TransferCategoryItem,
@@ -6,12 +7,13 @@ import {
 } from '@/db/schema'
 import Papa from 'papaparse'
 import { format } from 'date-fns'
+import { createSafeChainUniqueId } from '@/utils/safe-chain-unique-id'
 
 export interface TransferTableItem extends TransferItem {
     viewType: 'in' | 'out'
 }
 
-export function transfersToTableFormat(transfers: TransferItem[], safeAddress: string | null, allSafes: SafeItem[]): TransferTableItem[] {
+export function transfersToTableFormat(transfers: TransferItem[], selectedSafe: SelectedSafe | null, allSafes: SafeItem[]): TransferTableItem[] {
     return transfers
         .filter((transfer) => {
             const decimals = transfer.tokenDecimals || 18
@@ -20,12 +22,14 @@ export function transfersToTableFormat(transfers: TransferItem[], safeAddress: s
         })
         .flatMap((transfer) => {
             const rows: TransferTableItem[] = []
-            const trackedSafeAddresses = safeAddress
-                ? new Set([safeAddress.toLowerCase()])
-                : new Set(allSafes.map((safe) => safe.address.toLowerCase()))
+            const trackedSafeAddresses = selectedSafe
+                ? new Set([createSafeChainUniqueId(selectedSafe.address, selectedSafe.chain)])
+                : new Set(allSafes.map((safe) => createSafeChainUniqueId(safe.address, safe.chain)))
 
+            const identifierOut = createSafeChainUniqueId(transfer.fromAddress, transfer.safeChain)
+            const identifierIn = createSafeChainUniqueId(transfer.toAddress, transfer.safeChain)
             // Check if from address is a tracked safe
-            if (trackedSafeAddresses.has(transfer.fromAddress.toLowerCase())) {
+            if (trackedSafeAddresses.has(identifierOut)) {
                 rows.push({
                     ...transfer,
                     viewType: 'out',
@@ -33,7 +37,7 @@ export function transfersToTableFormat(transfers: TransferItem[], safeAddress: s
             }
 
             // Check if to address is a tracked safe
-            if (trackedSafeAddresses.has(transfer.toAddress.toLowerCase())) {
+            if (trackedSafeAddresses.has(identifierIn)) {
                 rows.push({
                     ...transfer,
                     viewType: 'in',

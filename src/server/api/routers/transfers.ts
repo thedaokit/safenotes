@@ -1,7 +1,7 @@
 import { desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { transferCategories, transfers } from '@/db/schema'
+import { transferCategories, transfers, chainEnum } from '@/db/schema'
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -14,13 +14,15 @@ import {
 import { TRPCError } from '@trpc/server'
 
 const safeTransferSchema = z.object({
+  transferId: z.string(),
+  safeAddress: z.string(),
+  safeChain: z.enum(chainEnum.enumValues),
   type: z.enum(['ETHER_TRANSFER', 'ERC20_TRANSFER']),
   executionDate: z.string(),
   blockNumber: z.number(),
   transactionHash: z.string(),
-  transferId: z.string(),
-  to: z.string(),
   from: z.string(),
+  to: z.string(),
   value: z.string(),
   tokenAddress: z.string().nullable(),
   tokenInfo: z
@@ -32,7 +34,6 @@ const safeTransferSchema = z.object({
       trusted: z.boolean(),
     })
     .nullable(),
-  safeAddress: z.string(),
 })
 
 export const transfersRouter = createTRPCRouter({
@@ -40,12 +41,14 @@ export const transfersRouter = createTRPCRouter({
     .input(
       z.object({
         safeAddress: z.string(),
+        chain: z.enum(chainEnum.enumValues),
         limit: z.number().default(100),
       })
     )
     .query(async ({ input }) => {
       const { results } = await fetchSafeTransfers(
         input.safeAddress,
+        input.chain,
         input.limit
       )
       return filterTrustedTransfers(results)
@@ -64,7 +67,7 @@ export const transfersRouter = createTRPCRouter({
         .values({
           transferId: transfer.transferId,
           safeAddress: transfer.safeAddress,
-          safeChain: 'ETH',
+          safeChain: transfer.safeChain,
           type: transfer.type,
           executionDate: new Date(transfer.executionDate),
           blockNumber: transfer.blockNumber,
@@ -83,22 +86,16 @@ export const transfersRouter = createTRPCRouter({
 
       return { success: true }
     }),
-  getAllTransfersByWallet: publicProcedure
-    .input(
-      z.object({
-        safeAddress: z.string(),
-      })
-    )
-    .query(async ({ ctx, input }) => {
-      return ctx.db
-        .select()
-        .from(transfers)
-        .where(eq(transfers.safeAddress, input.safeAddress))
-    }),
   getTransfers: publicProcedure
     .input(
       z.object({
-        safeAddress: z.string().nullable().optional(),
+        safeAddress: z.string().optional(),
+        chain: z.enum(chainEnum.enumValues).optional(),
+      }).refine((data) => {
+        // Either both parameters are provided or neither is provided
+        return (data.safeAddress && data.chain) || (!data.safeAddress && !data.chain)
+      }, {
+        message: "Both safeAddress and chain must be provided together, or neither should be provided"
       })
     )
     .query(async ({ ctx, input }) => {
@@ -107,11 +104,12 @@ export const transfersRouter = createTRPCRouter({
         .from(transfers)
         .orderBy(desc(transfers.executionDate))
 
-      if (input.safeAddress) {
+      if (input.safeAddress && input.chain) {
         const address = input.safeAddress.toLowerCase()
         query.where(
           sql`LOWER(${transfers.fromAddress}) = ${address} OR LOWER(${transfers.toAddress}) = ${address}`
         )
+        query.where(eq(transfers.safeChain, input.chain))
       }
 
       return query
