@@ -128,6 +128,8 @@ export function SyncTransactionsDialog({
           },
         }))
 
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
         // Process transfers one by one
         for (let i = 0; i < newTransfers.length; i++) {
           const transfer = newTransfers[i]
