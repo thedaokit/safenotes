@@ -18,7 +18,7 @@ export function transfersToTableFormat(transfers: TransferItem[], selectedSafe: 
         .filter((transfer) => {
             const decimals = transfer.tokenDecimals || 18
             const value = Number(transfer.value) / Math.pow(10, decimals)
-            return value >= 0.99 // threshold to show transfers
+            return value >= 0.25 // threshold to show transfers
         })
         .flatMap((transfer) => {
             const rows: TransferTableItem[] = []
