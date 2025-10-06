@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { ChainIcon } from '@/components/ChainIcon'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -15,10 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { createSafeChainUniqueId  } from '@/utils/safe-chain-unique-id'
-import { api } from '@/utils/trpc'
 import { Transfer } from '@/db/schema'
-import { ChainIcon } from '@/components/ChainIcon'
+import { createSafeChainUniqueId } from '@/utils/safe-chain-unique-id'
+import { api } from '@/utils/trpc'
 
 interface SyncStatus {
   [key: string]: {
@@ -35,6 +35,9 @@ interface SyncStatus {
 const TRANSFER_LIMITS = [10, 50, 100, 200] as const
 type TransferLimit = (typeof TRANSFER_LIMITS)[number]
 
+// UNI token address for filtering Uniswap org transfers
+const UNI_TOKEN_ADDRESS = '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984'
+
 export function SyncTransactionsDialog({
   isOpen,
   onClose,
@@ -46,27 +49,32 @@ export function SyncTransactionsDialog({
 }) {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({})
   const [transferLimit, setTransferLimit] = useState<TransferLimit>(50)
-  
-  // Fetch safes only for the specified organization
-  const { data: safes, isLoading: safesLoading } = api.safes.getByOrganization.useQuery(
-    { organizationId },
+
+  // Fetch organization to determine token filtering
+  const { data: organization } = api.organizations.getById.useQuery(
+    { id: organizationId },
     { enabled: isOpen && !!organizationId }
   )
-  
+
+  // Fetch safes only for the specified organization
+  const { data: safes, isLoading: safesLoading } =
+    api.safes.getByOrganization.useQuery(
+      { organizationId },
+      { enabled: isOpen && !!organizationId }
+    )
+
   // Add ENS names to safes
-  const { data: safesWithEns, isLoading: ensLoading } = api.safes.getAllSafesWithEns.useQuery(
-    undefined,
-    { 
+  const { data: safesWithEns, isLoading: ensLoading } =
+    api.safes.getAllSafesWithEns.useQuery(undefined, {
       enabled: isOpen && !!safes,
       select: (allSafesWithEns) => {
         // Filter to only include safes from our organization
-        return allSafesWithEns.filter(safe => 
-          safes?.some(orgSafe => orgSafe.address === safe.address)
+        return allSafesWithEns.filter((safe) =>
+          safes?.some((orgSafe) => orgSafe.address === safe.address)
         )
-      }
-    }
-  )
-  
+      },
+    })
+
   const isLoading = safesLoading || ensLoading
   const utils = api.useUtils()
 
@@ -87,7 +95,10 @@ export function SyncTransactionsDialog({
 
     // Sync each safe sequentially
     for (const safe of safesWithEns) {
-      const safeChainUniqueId = createSafeChainUniqueId(safe.address, safe.chain)
+      const safeChainUniqueId = createSafeChainUniqueId(
+        safe.address,
+        safe.chain
+      )
       setSyncStatus((prev) => ({
         ...prev,
         [safeChainUniqueId]: {
@@ -108,11 +119,14 @@ export function SyncTransactionsDialog({
         )
 
         // Fetch new transfers with selected limit
+        // For Uniswap org, filter by UNI token address
         const newTransfers =
           await utils.client.transfers.getTransfersPerWallet.query({
             safeAddress: safe.address,
             chain: safe.chain,
             limit: transferLimit,
+            tokenAddress:
+              organization?.slug === 'uniswap' ? UNI_TOKEN_ADDRESS : undefined,
           })
 
         // Update total in progress
@@ -127,6 +141,8 @@ export function SyncTransactionsDialog({
             },
           },
         }))
+
+        await new Promise((resolve) => setTimeout(resolve, 1000))
 
         // Process transfers one by one
         for (let i = 0; i < newTransfers.length; i++) {
@@ -276,12 +292,17 @@ export function SyncTransactionsDialog({
 
           <div className="max-h-[60vh] space-y-3 overflow-y-auto">
             {isLoading ? (
-              <div className="text-center py-4">Loading safes...</div>
+              <div className="py-4 text-center">Loading safes...</div>
             ) : !safesWithEns || safesWithEns.length === 0 ? (
-              <div className="text-center py-4">No safes found for this organization</div>
+              <div className="py-4 text-center">
+                No safes found for this organization
+              </div>
             ) : (
               safesWithEns.map((safe) => {
-                const safeChainUniqueId = createSafeChainUniqueId(safe.address, safe.chain)
+                const safeChainUniqueId = createSafeChainUniqueId(
+                  safe.address,
+                  safe.chain
+                )
                 const status = syncStatus[safeChainUniqueId]
                 const progress = status?.progress
 

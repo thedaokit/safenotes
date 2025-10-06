@@ -1,25 +1,24 @@
 import { getAddress } from 'viem'
+
 import { Chain } from '@/db/schema'
 
-export const SAFE_API_URL_BASE_SUBPATH = '/api/v1'
+export const SAFE_API_URL_BASE = 'https://api.safe.global/tx-service/'
+export const SAFE_API_V1 = '/api/v1'
+export const SAFE_API_V2 = '/api/v2'
 
 // Map of chain IDs to Safe Transaction Service API URLs
-const SAFE_API_URLS: Record<Chain, string> = {
-  'ETH': 'https://safe-transaction-mainnet.safe.global',  // Ethereum Mainnet
-  'ARB': 'https://safe-transaction-arbitrum.safe.global', // Arbitrum
-  'UNI': 'https://safe-transaction-uni.safe.global',      // Uni
-  'BASE': 'https://safe-transaction-base.safe.global', // Base
-  'LINEA': 'https://safe-transaction-linea.safe.global', // Linea
-  'OP': 'https://safe-transaction-optimism.safe.global', // Optimism
-  'SCROLL': 'https://safe-transaction-scroll.safe.global', // Scroll
+export const SAFE_API_CHAIN_PATHS: Record<Chain, string> = {
+  ETH: 'eth', // Ethereum Mainnet
+  ARB: 'arb1', // Arbitrum
+  UNI: 'unichain', // Uni
+  BASE: 'base', // Base
+  LINEA: 'linea', // Linea
+  OP: 'oeth', // Optimism
+  SCROLL: 'scr', // Scroll
 }
 
 export function getSafeApiUrl(chain: Chain): string {
-  return SAFE_API_URLS[chain]
-}
-
-export function getSafeApiUrlWithSubpath(chain: Chain): string {
-  return `${getSafeApiUrl(chain)}${SAFE_API_URL_BASE_SUBPATH}`
+  return `${SAFE_API_URL_BASE}${SAFE_API_CHAIN_PATHS[chain]}`
 }
 
 export interface SafeTransferResponse {
@@ -51,14 +50,42 @@ export interface SafeTransfer {
   } | null
 }
 
+export function getSafeApiKey(): string {
+  const safeApiKey = process.env.SAFE_API_KEY || ''
+  if (!safeApiKey) {
+    throw new Error('SAFE_API_KEY is not set')
+  }
+  return safeApiKey
+}
+
 export async function fetchSafeTransfers(
   safeAddress: string,
   chain: Chain,
-  limit: number = 100
+  limit: number = 100,
+  tokenAddress?: string
 ): Promise<SafeTransferResponse> {
   const checksummedSafeAddress = getAddress(safeAddress)
-  const apiUrl = `${getSafeApiUrlWithSubpath(chain)}/safes/${checksummedSafeAddress}/transfers/?limit=${limit}`
-  const response = await fetch(apiUrl)
+  let apiUrl = `${getSafeApiUrl(chain)}${SAFE_API_V1}/safes/${checksummedSafeAddress}/transfers/?limit=${limit}`
+
+  // Add token_address filter if provided
+  if (tokenAddress) {
+    apiUrl += `&token_address=${tokenAddress}`
+  }
+
+  const safeApiKey = getSafeApiKey()
+
+  console.log('🔗 External API Request:')
+  console.log('URL:', apiUrl)
+  console.log('Method: GET')
+  console.log('Headers:', {
+    Authorization: `Bearer ${safeApiKey.substring(0, 10)}...`,
+  })
+
+  const response = await fetch(apiUrl, {
+    headers: {
+      Authorization: `Bearer ${safeApiKey}`,
+    },
+  })
 
   if (!response.ok) {
     throw new Error(`Failed to fetch transfers for safe ${safeAddress}`)

@@ -10,25 +10,7 @@ import {
 } from '@/components/ui/hover-card'
 import { SelectedSafe } from '@/db/schema'
 import { publicClient } from '@/lib/web3'
-import { getSafeApiUrl, SAFE_API_URL_BASE_SUBPATH } from '@/utils/safe-global-adapter'
-
-interface Token {
-  name: string
-  symbol: string
-  decimals: number
-  logoUri: string
-}
-
-interface Balance {
-  tokenAddress: string | null
-  token: Token | null
-  balance: string
-}
-
-interface SafeInfo {
-  owners: string[]
-  threshold: number
-}
+import { api } from '@/utils/trpc'
 
 interface SafeStatsProps {
   selectedSafe: SelectedSafe | null
@@ -38,47 +20,22 @@ export const SafeStats = ({ selectedSafe }: SafeStatsProps) => {
   const [isSignersOpen, setIsSignersOpen] = useState(false)
   const [isBalanceOpen, setIsBalanceOpen] = useState(false)
 
-  const { data: signersData } = useQuery({
-    queryKey: ['safe-info', selectedSafe],
-    queryFn: async () => {
-      if (!selectedSafe) return null
-      const normalizedSafeAddress = getAddress(selectedSafe.address)
-      const safeApiUrl = new URL(
-        `${SAFE_API_URL_BASE_SUBPATH}/safes/${normalizedSafeAddress}/`,
-        getSafeApiUrl(selectedSafe.chain)
-      )
-
-      const response = await fetch(safeApiUrl)
-      if (!response.ok) {
-        throw new Error('Failed to fetch safe info')
-      }
-
-      return (await response.json()) as SafeInfo
-    },
+  const { data: signersData } = api.safes.getSafeStatusFromSafeApi.useQuery({
+    address: selectedSafe?.address || '',
+    chain: selectedSafe?.chain || 'ETH',
+  }, {
     enabled: !!selectedSafe,
   })
 
-  const { data: balances } = useQuery({
-    queryKey: ['safe-balances', selectedSafe],
-    queryFn: async () => {
-      if (!selectedSafe) return null
-      const normalizedSafeAddress = getAddress(selectedSafe.address)
-      const safeApiUrl = new URL(
-        `${SAFE_API_URL_BASE_SUBPATH}/safes/${normalizedSafeAddress}/balances/`,
-        getSafeApiUrl(selectedSafe.chain)
-      )
-      safeApiUrl.searchParams.set('trusted', 'true')
-      safeApiUrl.searchParams.set('exclude_spam', 'true')
-
-      const response = await fetch(safeApiUrl)
-      if (!response.ok) {
-        throw new Error('Failed to fetch safe balances')
-      }
-
-      return (await response.json()) as Balance[]
+  const { data: balances } = api.safes.getSafeBalancesFromSafeApi.useQuery(
+    {
+      address: selectedSafe?.address || '',
+      chain: selectedSafe?.chain || 'ETH',
     },
-    enabled: !!selectedSafe,
-  })
+    {
+      enabled: !!selectedSafe,
+    }
+  )
 
   const { data: ensNames, isLoading: isEnsNamesLoading } = useQuery({
     queryKey: ['safe-signers-ens', signersData?.owners],
@@ -92,7 +49,6 @@ export const SafeStats = ({ selectedSafe }: SafeStatsProps) => {
             const name = await publicClient.getEnsName({
               address: address as Address,
             })
-
             let avatar = null
             if (name) {
               try {
@@ -119,13 +75,13 @@ export const SafeStats = ({ selectedSafe }: SafeStatsProps) => {
 
   return (
     <div className="flex flex-row items-start gap-4 sm:items-center">
-      <HoverCard 
-        openDelay={200} 
-        closeDelay={300} 
-        open={isSignersOpen} 
+      <HoverCard
+        openDelay={200}
+        closeDelay={300}
+        open={isSignersOpen}
         onOpenChange={setIsSignersOpen}
       >
-        <HoverCardTrigger 
+        <HoverCardTrigger
           asChild
           onClick={() => setIsSignersOpen(!isSignersOpen)}
         >
@@ -173,13 +129,13 @@ export const SafeStats = ({ selectedSafe }: SafeStatsProps) => {
         </HoverCardContent>
       </HoverCard>
 
-      <HoverCard 
-        openDelay={200} 
-        closeDelay={300} 
-        open={isBalanceOpen} 
+      <HoverCard
+        openDelay={200}
+        closeDelay={300}
+        open={isBalanceOpen}
         onOpenChange={setIsBalanceOpen}
       >
-        <HoverCardTrigger 
+        <HoverCardTrigger
           asChild
           onClick={() => setIsBalanceOpen(!isBalanceOpen)}
         >
