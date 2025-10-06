@@ -1,7 +1,8 @@
+import { TRPCError } from '@trpc/server'
 import { desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { transferCategories, transfers, chainEnum } from '@/db/schema'
+import { chainEnum, transferCategories, transfers } from '@/db/schema'
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -11,7 +12,6 @@ import {
   fetchSafeTransfers,
   filterTrustedTransfers,
 } from '@/utils/safe-global-adapter'
-import { TRPCError } from '@trpc/server'
 
 const safeTransferSchema = z.object({
   transferId: z.string(),
@@ -42,14 +42,16 @@ export const transfersRouter = createTRPCRouter({
       z.object({
         safeAddress: z.string(),
         chain: z.enum(chainEnum.enumValues),
-        limit: z.number().default(100),
+        limit: z.number().default(200),
+        tokenAddress: z.string().optional(),
       })
     )
     .query(async ({ input }) => {
       const { results } = await fetchSafeTransfers(
         input.safeAddress,
         input.chain,
-        input.limit
+        input.limit,
+        input.tokenAddress
       )
       return filterTrustedTransfers(results)
     }),
@@ -88,15 +90,24 @@ export const transfersRouter = createTRPCRouter({
     }),
   getTransfers: publicProcedure
     .input(
-      z.object({
-        safeAddress: z.string().optional(),
-        chain: z.enum(chainEnum.enumValues).optional(),
-      }).refine((data) => {
-        // Either both parameters are provided or neither is provided
-        return (data.safeAddress && data.chain) || (!data.safeAddress && !data.chain)
-      }, {
-        message: "Both safeAddress and chain must be provided together, or neither should be provided"
-      })
+      z
+        .object({
+          safeAddress: z.string().optional(),
+          chain: z.enum(chainEnum.enumValues).optional(),
+        })
+        .refine(
+          (data) => {
+            // Either both parameters are provided or neither is provided
+            return (
+              (data.safeAddress && data.chain) ||
+              (!data.safeAddress && !data.chain)
+            )
+          },
+          {
+            message:
+              'Both safeAddress and chain must be provided together, or neither should be provided',
+          }
+        )
     )
     .query(async ({ ctx, input }) => {
       const query = ctx.db

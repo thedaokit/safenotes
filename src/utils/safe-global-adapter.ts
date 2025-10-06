@@ -1,4 +1,5 @@
 import { getAddress } from 'viem'
+
 import { Chain } from '@/db/schema'
 
 export const SAFE_API_URL_BASE = 'https://api.safe.global/tx-service/'
@@ -7,13 +8,13 @@ export const SAFE_API_V2 = '/api/v2'
 
 // Map of chain IDs to Safe Transaction Service API URLs
 export const SAFE_API_CHAIN_PATHS: Record<Chain, string> = {
-  'ETH': 'eth',  // Ethereum Mainnet
-  'ARB': 'arb1', // Arbitrum
-  'UNI': 'unichain',      // Uni
-  'BASE': 'base', // Base
-  'LINEA': 'linea', // Linea
-  'OP': 'oeth', // Optimism
-  'SCROLL': 'scr', // Scroll
+  ETH: 'eth', // Ethereum Mainnet
+  ARB: 'arb1', // Arbitrum
+  UNI: 'unichain', // Uni
+  BASE: 'base', // Base
+  LINEA: 'linea', // Linea
+  OP: 'oeth', // Optimism
+  SCROLL: 'scr', // Scroll
 }
 
 export function getSafeApiUrl(chain: Chain): string {
@@ -60,14 +61,29 @@ export function getSafeApiKey(): string {
 export async function fetchSafeTransfers(
   safeAddress: string,
   chain: Chain,
-  limit: number = 100
+  limit: number = 100,
+  tokenAddress?: string
 ): Promise<SafeTransferResponse> {
   const checksummedSafeAddress = getAddress(safeAddress)
-  const apiUrl = `${getSafeApiUrl(chain)}${SAFE_API_V1}/safes/${checksummedSafeAddress}/transfers/?limit=${limit}`
+  let apiUrl = `${getSafeApiUrl(chain)}${SAFE_API_V1}/safes/${checksummedSafeAddress}/transfers/?limit=${limit}`
+
+  // Add token_address filter if provided
+  if (tokenAddress) {
+    apiUrl += `&token_address=${tokenAddress}`
+  }
+
   const safeApiKey = getSafeApiKey()
+
+  console.log('🔗 External API Request:')
+  console.log('URL:', apiUrl)
+  console.log('Method: GET')
+  console.log('Headers:', {
+    Authorization: `Bearer ${safeApiKey.substring(0, 10)}...`,
+  })
+
   const response = await fetch(apiUrl, {
     headers: {
-      'Authorization': `Bearer ${safeApiKey}`,
+      Authorization: `Bearer ${safeApiKey}`,
     },
   })
 
